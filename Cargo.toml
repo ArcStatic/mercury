@@ -1,0 +1,10 @@
+[package]
+name = "quic-rust"
+version = "0.1.0"
+authors = ["emily"]
+
+[dependencies]
+
+mio = "0.6"
+bytes = "0.4"
+quickcheck = "0.4"

@@ -19,7 +19,7 @@ use header::{Header, PacketType, PacketNumber, ConnectionID};
 
 fn main() {
     
-    println!("\n UDP featuring the Bytes crate.\n");
+    println!("\n QUIC and Rust combine...\n");
    
     //Expected command line use:
     //cargo run send packet_type "some payload message" bind_ip:bind_port dest_ip:dest_port

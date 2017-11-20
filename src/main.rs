@@ -24,6 +24,7 @@ fn main() {
     //Expected command line use:
     //cargo run send packet_type "some payload message" bind_ip:bind_port dest_ip:dest_port
     //cargo run listen bind_ip:bind_port
+    //cargo run start bind_ip:bind_port dest_ip:dest_port
     let args: Vec<String> = env::args().collect();
     
     println!("{:?}", args);
@@ -31,21 +32,33 @@ fn main() {
     match args[1].trim() {
     	"send" => send_msg(&args[2], &args[3], &args[4], &args[5]),
     	"listen" => listen(&args[2]),
+    	"start" => initial_connect(&args[2], &args[3]),
     	//TODO: anything other than panic! here
-    	_ => panic!("Invalid first argument supplied - 'send' or 'listen' only."),
+    	_ => panic!("Invalid first argument supplied - 'send', 'listen' or 'start' only."),
     }
     
 }
 
 
+
+//Start a connection with a listening server
+fn initial_connect(bind_str: &str, dest_str: &str){
+	
+	//Send ClientInitial packet
+    Header::start_new_connection(bind_str, dest_str);
+    println!("\nStarting new QUIC connection...\nClientInitial packet sent.\n");
+}
+
+
+
 //Send a message/packet type
 fn send_msg(header_type: &str, msg: &str, bind_str: &str, dest_str: &str){
 	
-	//Write payload to 
+	//Write payload as bytes
 	let mut payload_vec : Vec<u8> = Vec::new();
 	payload_vec.write(msg.as_bytes()).unwrap();
 	
-	//Check if message being sent is a LongHeader, ShortHeader or just some arbitrary text (ie. Header::NonStandard)
+	//Check if message being sent is a LongHeader, ShortHeader or just some arbitrary text
 	//Fill in relevant Header fields
 	let msg_to_send = match header_type{
 		"long_header" => Header::LongHeader{
@@ -82,7 +95,6 @@ fn send_msg(header_type: &str, msg: &str, bind_str: &str, dest_str: &str){
 	//Create SocketAddr from supplied addr:port str
 	let dest_info = SocketAddr::from_str(dest_str).unwrap();
 	
-	//let msg_to_send2 : u8 = msg_to_send;
 	
 	//println!("{:?}", &socket_addr.unwrap())
 	//Send message to dest_addr:dest_port
@@ -105,7 +117,7 @@ fn listen(bind_str: &str){
 	let socket = UdpSocket::bind(&bind_info).unwrap();
 	
 	//Set up a [u8] buffer for incoming messages/packets
-	let mut input_buf = [0; 100];
+	let mut input_buf = [0; 1200];
 	
 	loop {
 		//Attempt to retrieve data from socket
@@ -118,7 +130,7 @@ fn listen(bind_str: &str){
 	//Convert [u8] into Bytes struct
 	let input_buf = Bytes::from(&input_buf[..]);
 	
-	println!("msg received: {:?}", &input_buf);
+	println!("msg received: {:?}\n\n", &input_buf);
 	
 	//Parse received message
 	//TODO: get a Header struct returned

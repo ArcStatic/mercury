@@ -1,5 +1,13 @@
 use bytes::{Bytes, BytesMut, Buf, BufMut, IntoBuf, BigEndian};
+
+use mio::net::UdpSocket;
+
 use std::str::from_utf8;
+use std::net::SocketAddr;
+use std::str::FromStr;
+use std::io::Write;
+use std::convert::AsRef;
+
 
 #[derive(Debug)]
 pub struct ConnectionID(pub u64);
@@ -48,10 +56,19 @@ pub enum Header {
 //Methods associated with enum Header
 impl Header{
 
-	//Return a Bytes object 
+    //GENERATE_BYTES METHOD    
+    
+	//Return a representation of a header in the form of a Bytes struct 
 	pub fn generate_bytes(self) -> Bytes{
-
-		let mut buf = BytesMut::with_capacity(1024);
+        //Set up a [u8] buffer for incoming messages/packets
+	    //let input_buf = [0; 1200];
+	
+	    
+	    
+		let mut buf = BytesMut::with_capacity(1200);
+		
+		//Convert [u8] into Bytes struct
+	    //let mut buf = BytesMut::from(&input_buf[..]);
 	
 		//Determine which type of Header is being operated on
 		match self {
@@ -89,6 +106,18 @@ impl Header{
 				buf.put_u32::<BigEndian>(packet_number);
 				buf.put_u32::<BigEndian>(version);
 				buf.put_slice(&payload);
+				println!("Length of sent packet: {}", BytesMut::len(&buf));
+				println!("Capacity of sent packet: {}", BytesMut::capacity(&buf));
+				println!("Remaining capacity of sent packet: {}", BytesMut::remaining_mut(&buf));
+				
+				
+				//All sent LongHeader packets must be padded to 1200 octets minimum according to IETF QUIC document v7
+				let padding = vec![0; BytesMut::remaining_mut(&buf)];
+				//Can't use array - complains about non-constant value being supplied
+				//let padding = [0; BytesMut::remaining_mut(&buf)];
+				
+				buf.put_slice(&padding);
+				println!("Padding added - any space left?: {:?}", BytesMut::has_remaining_mut(&buf));
 				//buf.put(msg);
 				//buf.put(&b"LongHeaderByteString"[..]);
 			}
@@ -154,10 +183,17 @@ impl Header{
 	
 	}
 	
+	//END GENERATE_BYTES METHOD
+	//--------------------------------------
 	
-	//Parse the content of received messages and return a LongHeader or ShortHeader
+	
+	//PARSE_MESSAGE METHOD
+	
+	//Reconstruct a Header struct from a Bytes object
 	pub fn parse_message(input : Bytes) -> Header{
-	
+	    
+	    println!("Length of received packet: {}", Bytes::len(&input));
+	    
 	    let mut input = Bytes::into_buf(input);
 	    
 	    let initial_octet : u8 = input.get_u8();
@@ -279,7 +315,44 @@ impl Header{
 	    
 	}
 	
+	//END PARSE_MESSAGE METHOD
+	//--------------------------------------
+	
+	//START_NEW_CONNECTION METHOD
+	//Client sends a ClientInitial type packet to start a new QUIC connection with a server
+	pub fn start_new_connection(addr_info : &str, dest_info : &str){
+        
+        //Write payload as bytes
+	    let mut payload_vec : Vec<u8> = Vec::new();
+	    payload_vec.write("Initial client packet payload!".as_bytes()).unwrap();
+        
+        //Initial handshake packets are always LongHeaders
+        //Must be padded to 1200 octets according to IETF specification (draft v7)
+        let client_initial = Header::LongHeader{
+		    packet_type : PacketType::ClientInitial,
+		    connection_id : 0x00a19d00,
+		    packet_number : 0b00000001,
+		    version : 0b00000001,
+		    //Payload is not a fixed size number of bits
+		    payload : payload_vec,
+	    };
+	    
+	    //Create SocketAddr
+	    let addr_info = SocketAddr::from_str(addr_info).unwrap();
+	
+	    //Bind socket to given address
+	    let socket = UdpSocket::bind(&addr_info).unwrap();
+		
+	    //Create SocketAddr from supplied addr:port str
+	    let dest_info = SocketAddr::from_str(dest_info).unwrap();
+        	
+        //Send ClientInitial packet to server        
+	    UdpSocket::send_to(&socket, AsRef::as_ref(&Header::generate_bytes(client_initial)), &dest_info).expect("Couldn't send message.");
+	}
 
+    //END START_NEW_CONNECTION METHOD
+	//--------------------------------------
+    
 }
 
 

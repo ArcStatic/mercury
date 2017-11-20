@@ -123,25 +123,25 @@ fn listen(bind_str: &str){
 	loop {
 		//Attempt to retrieve data from socket
 		match socket.recv_from(&mut input_buf){
-			Ok(_) => break,
+			Ok(_) => {//Convert [u8] into Bytes struct
+	                    let input_buf = Bytes::from(&input_buf[..]);
+	
+	                    println!("msg received: {:?}\n\n", &input_buf);
+	
+	                    //Parse received message
+	                    let recv_header = Header::parse_message(input_buf);
+	
+	                    //Print the raw bytestream
+	                    println!("recv_header: {:?}", &recv_header);
+	
+	                    //Detect if received packet could be a new connection
+	                    Header::is_new_connection(recv_header);
+	        }
 			Err(_) => continue,
 		};
 	}
 	
-	//Convert [u8] into Bytes struct
-	let input_buf = Bytes::from(&input_buf[..]);
 	
-	println!("msg received: {:?}\n\n", &input_buf);
-	
-	//Parse received message
-	//TODO: get a Header struct returned
-	let output_buf = Header::parse_message(input_buf);
-	
-	//Print the raw bytestream
-	println!("output_buf: {:?}", &output_buf);
-	
-	//Detect if received packet could be a new connection
-	Header::is_new_connection(output_buf);
 	
 	//Attempt to print as a String
 	//println!("Output as str: {:?}", std::str::from_utf8(&output_buf.payload));

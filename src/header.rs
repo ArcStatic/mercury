@@ -60,15 +60,8 @@ impl Header{
     
 	//Return a representation of a header in the form of a Bytes struct 
 	pub fn generate_bytes(self) -> Bytes{
-        //Set up a [u8] buffer for incoming messages/packets
-	    //let input_buf = [0; 1200];
-	
-	    
-	    
+
 		let mut buf = BytesMut::with_capacity(1200);
-		
-		//Convert [u8] into Bytes struct
-	    //let mut buf = BytesMut::from(&input_buf[..]);
 	
 		//Determine which type of Header is being operated on
 		match self {
@@ -351,6 +344,24 @@ impl Header{
 	}
 
     //END START_NEW_CONNECTION METHOD
+	//--------------------------------------
+	
+	
+	//IS_NEW_CONNECTION METHOD
+	
+	pub fn is_new_connection(self) -> bool{
+	    match self {
+	        Header::LongHeader{packet_type, connection_id, packet_number, version, payload} => {        match packet_type { 
+	            PacketType::ClientInitial => {println!("ClientInitial received - potential new connection detected."); return true;},
+	            _ => return false,
+	            }
+	        }
+	        _ => return false,
+	        
+	    }
+	}
+	
+	//END IS_NEW_CONNECTION METHOD
 	//--------------------------------------
     
 }

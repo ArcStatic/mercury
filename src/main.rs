@@ -117,6 +117,7 @@ fn listen(bind_str: &str){
 	let socket = UdpSocket::bind(&bind_info).unwrap();
 	
 	//Set up a [u8] buffer for incoming messages/packets
+	//Size 1200 bytes to match current QUIC specification
 	let mut input_buf = [0; 1200];
 	
 	loop {
@@ -138,6 +139,9 @@ fn listen(bind_str: &str){
 	
 	//Print the raw bytestream
 	println!("output_buf: {:?}", &output_buf);
+	
+	//Detect if received packet could be a new connection
+	Header::is_new_connection(output_buf);
 	
 	//Attempt to print as a String
 	//println!("Output as str: {:?}", std::str::from_utf8(&output_buf.payload));

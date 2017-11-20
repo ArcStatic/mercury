@@ -126,7 +126,7 @@ fn listen(bind_str: &str){
 			Ok(_) => {//Convert [u8] into Bytes struct
 	                    let input_buf = Bytes::from(&input_buf[..]);
 	
-	                    println!("msg received: {:?}\n\n", &input_buf);
+	                    //println!("msg received: {:?}\n\n", &input_buf);
 	
 	                    //Parse received message
 	                    let recv_header = Header::parse_message(input_buf);

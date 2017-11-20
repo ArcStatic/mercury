@@ -291,7 +291,7 @@ impl Header{
                    //Get payload
                    let payload = input.bytes().to_vec();
                    
-                   println!("Payload as str: {:?}", from_utf8(&payload).unwrap());
+                   //println!("Payload as str: {:?}", from_utf8(&payload).unwrap());
                    
                    return Header::ShortHeader{
                         key_phase,

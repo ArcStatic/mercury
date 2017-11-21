@@ -349,10 +349,10 @@ impl Header{
 	
 	//IS_NEW_CONNECTION METHOD
 	
-	pub fn is_new_connection(self) -> bool{
+	pub fn is_new_connection(&self) -> bool{
 	    match self {
-	        Header::LongHeader{packet_type, connection_id, packet_number, version, payload} => {        match packet_type { 
-	            PacketType::ClientInitial => {println!("ClientInitial received - potential new connection detected."); return true;},
+	        &Header::LongHeader{ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => {        match packet_type { 
+	            &PacketType::ClientInitial => {println!("ClientInitial received - potential new connection detected."); return true;},
 	            _ => return false,
 	            }
 	        }
@@ -362,6 +362,23 @@ impl Header{
 	}
 	
 	//END IS_NEW_CONNECTION METHOD
+	//--------------------------------------
+	
+	//IS_COMPATIBLE_VERSION METHOD
+	
+	pub fn is_compatible_version(&self) -> bool{
+	    match self {
+	        &Header::LongHeader{ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => {        match version { 
+	            &0b00000001 => {println!("Compatible version detected: {:?}", &version); return true;},
+	            _ => {println!("Incompatible version detected: {:?}", version); return false;},
+	            }
+	        }
+	        _ => return false,
+	        
+	    }
+	}
+	
+	//END IS_COMPATIBLE_VERSION METHOD
 	//--------------------------------------
     
 }

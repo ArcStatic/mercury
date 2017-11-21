@@ -135,7 +135,13 @@ fn listen(bind_str: &str){
 	                    println!("recv_header: {:?}", &recv_header);
 	
 	                    //Detect if received packet could be a new connection
-	                    Header::is_new_connection(recv_header);
+	                    if Header::is_new_connection(&recv_header){
+	                    
+	                        Header::is_compatible_version(&recv_header);
+	                        //Header::is_new_connection(recv_header);
+	                    } else {
+	                        println!("Nothing of interest received.");
+	                    };
 	        }
 			Err(_) => continue,
 		};

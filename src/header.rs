@@ -62,6 +62,8 @@ impl Header{
 	pub fn generate_bytes(self) -> Bytes{
 
 		let mut buf = BytesMut::with_capacity(1200);
+		
+		println!("\n{:?}\n", &self);
 	
 		//Determine which type of Header is being operated on
 		match self {
@@ -99,10 +101,11 @@ impl Header{
 				buf.put_u32::<BigEndian>(packet_number);
 				buf.put_u32::<BigEndian>(version);
 				buf.put_slice(&payload);
-				println!("Length of sent packet: {}", BytesMut::len(&buf));
-				println!("Capacity of sent packet: {}", BytesMut::capacity(&buf));
-				println!("Remaining capacity of sent packet: {}", BytesMut::remaining_mut(&buf));
+				println!("Length of packet: {}", BytesMut::len(&buf));
+				println!("Capacity of packet: {}", BytesMut::capacity(&buf));
+				println!("Remaining capacity of packet: {}", BytesMut::remaining_mut(&buf));
 				
+				println!("{:?}", buf);
 				
 				//All sent LongHeader packets must be padded to 1200 octets minimum according to IETF QUIC document v7
 				let padding = vec![0; BytesMut::remaining_mut(&buf)];
@@ -324,7 +327,7 @@ impl Header{
         let client_initial = Header::LongHeader{
 		    packet_type : PacketType::ClientInitial,
 		    connection_id : 0x00a19d00,
-		    packet_number : 0b00000001,
+		    packet_number : 0b000001,
 		    version : 0b00000001,
 		    //Payload is not a fixed size number of bits
 		    payload : payload_vec,

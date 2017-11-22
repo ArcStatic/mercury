@@ -1,2 +1,14 @@
 # quic-rust
-QUIC protocol implemented in Rust
+
+This is an undergraduate dissertation project aiming to implement as much of the QUIC protocol as is humanely possible before March 2018.
+
+### Current progress:
+* Rust compiles!
+* Server listens for incoming packets on a constant loop
+* Client can send messages as ShortHeader or LongHeader packets
+* Client can start a connection using ClientInitial
+
+## Next steps:
+* Make server respond to ClientInitial
+* Start work on cryptographic handshake (using TLS 1.3)
+* Create tests using QuickCheck

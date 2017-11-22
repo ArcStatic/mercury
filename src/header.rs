@@ -229,7 +229,7 @@ impl Header{
                             
                             //Get payload
                             let payload = input.bytes().to_vec();
-                            println!("Payload as str: {:?}", from_utf8(&payload).unwrap());
+                            //println!("Payload as str: {:?}", from_utf8(&payload).unwrap());
                             
                             return Header::LongHeader{
                                 packet_type,
@@ -372,8 +372,8 @@ impl Header{
 	pub fn is_compatible_version(&self) -> bool{
 	    match self {
 	        &Header::LongHeader{ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => {        match version { 
-	            &0b00000001 => {println!("Compatible version detected: {:?}", &version); return true;},
-	            _ => {println!("Incompatible version detected: {:?}", version); return false;},
+	            &0b00000001 => {println!("Compatible version detected: {:?}\n", &version); return true;},
+	            _ => {println!("Incompatible version detected: {:?}\n", version); return false;},
 	            }
 	        }
 	        _ => return false,

@@ -1,6 +1,6 @@
 # quic-rust
 
-This is an undergraduate dissertation project aiming to implement as much of the QUIC protocol as is humanely possible before March 2018.
+This is an undergraduate dissertation project aiming to implement as much of the QUIC protocol as humanely possible before March 2018.
 
 ### Current progress:
 * Rust compiles!
@@ -8,7 +8,7 @@ This is an undergraduate dissertation project aiming to implement as much of the
 * Client can send messages as ShortHeader or LongHeader packets
 * Client can start a connection using ClientInitial
 
-## Next steps:
+### Next steps:
 * Make server respond to ClientInitial
 * Start work on cryptographic handshake (using TLS 1.3)
 * Create tests using QuickCheck

@@ -88,13 +88,14 @@ impl Header{
 			Header::LongHeader{packet_type, connection_id, packet_number, version, payload} => {
 			    
 			    //128 added to all values to mark this as a long header
+			    //AVTCORE compliance: packet numbers in range 127-122 (descending)
 			    match packet_type {
-			        PacketType::VersionNegotiation => buf.put_u8(128 + 0x01),
-                    PacketType::ClientInitial => buf.put_u8(128 + 0x02),
-                    PacketType::ServerStatelessRetry => buf.put_u8(128 + 0x03),
-                    PacketType::ServerCleartext => buf.put_u8(128 + 0x04),
-                    PacketType::ClientCleartext => buf.put_u8(128 + 0x05),
-                    PacketType::ZeroRTTProtected => buf.put_u8(128 + 0x06)
+			        PacketType::VersionNegotiation => buf.put_u8(128 + 0x7F),
+                    PacketType::ClientInitial => buf.put_u8(128 + 0x7E),
+                    PacketType::ServerStatelessRetry => buf.put_u8(128 + 0x7D),
+                    PacketType::ServerCleartext => buf.put_u8(128 + 0x7C),
+                    PacketType::ClientCleartext => buf.put_u8(128 + 0x7B),
+                    PacketType::ZeroRTTProtected => buf.put_u8(128 + 0x7A)
 			    }
 
 				buf.put_u64::<BigEndian>(connection_id);
@@ -136,9 +137,10 @@ impl Header{
 			
 			Header::ShortHeader{key_phase, connection_id, packet_number, payload} => {
 				
+				//AVTCORE compliance: connection_flag is 0 for present ConnectionID, 1 for absent - counterintuitive, but necessary for multiplexing compatibility
 				let connection_flag_bit = match connection_id {
-				    Some(_) => 0b01000000,
-				    None => 0b00000000
+				    Some(_) => 0b00000000,
+				    None => 0b01000000
 				};
 				
 				let key_phase_bit = match key_phase {
@@ -146,10 +148,12 @@ impl Header{
 				    false => 0b00000000
 				};
 				
+				//AVTCORE compliance: packet types in descending order
+				//Last 5 bits - types range from 16 - 14 in current implementation
 				let packet_type = match packet_number {
-				    PacketNumber::OneOctet(_) => 0x01,
-				    PacketNumber::TwoOctet(_) => 0x02,
-				    PacketNumber::FourOctet(_) => 0x03,
+				    PacketNumber::OneOctet(_) => 0x10,
+				    PacketNumber::TwoOctet(_) => 0xF,
+				    PacketNumber::FourOctet(_) => 0xE,
 				};
 				
 				let initial_octet = 0b01111111 & (connection_flag_bit | key_phase_bit | packet_type);
@@ -208,13 +212,15 @@ impl Header{
                             //7 remaining bits are the packet type
                             let packet_marker = 0b01111111 & initial_octet;
                             println!("Packet type: {}", packet_marker);
+                            
+                            //AVTCORE compliance: packet numbers in range 127-122 (descending)
                             let packet_type = match packet_marker {
-                                0x01 => PacketType::VersionNegotiation,
-                                0x02 => PacketType::ClientInitial,
-                                0x03 => PacketType::ServerStatelessRetry,
-                                0x04 => PacketType::ServerCleartext,
-                                0x05 => PacketType::ClientCleartext,
-                                0x06 => PacketType::ZeroRTTProtected,
+                                0x7F => PacketType::VersionNegotiation,
+                                0x7E => PacketType::ClientInitial,
+                                0x7D => PacketType::ServerStatelessRetry,
+                                0x7C => PacketType::ServerCleartext,
+                                0x7B => PacketType::ClientCleartext,
+                                0x7A => PacketType::ZeroRTTProtected,
                                 _ => panic!("Unrecognised packet type for LongHeader")
                             };
                             
@@ -244,11 +250,11 @@ impl Header{
             0 => {
                    println!("Short header packet received.");
                    
-                   //TODO: improve this, seems inefficient
                    //Connection flag: second most significant bit, shifted right 6 to be 1 or 0
+                   //AVTCORE compliance: connection_flag is 0 for present ConnectionID, 1 for absent - counterintuitive, but necessary for multiplexing compatibility
                    let connection_flag = match (0b01000000 & initial_octet) >> 6{
-                        0 => false,
-                        _ => true
+                        0 => true,
+                        _ => false
                    };
                    
                    println!("Connection flag: {}", connection_flag);
@@ -282,10 +288,11 @@ impl Header{
                    */
                    
                    //Get packet_number
+                   //AVTCORE compliance: packet types range from 16-14 (descending)
                    let packet_number = match 0b00011111 & initial_octet {
-                        0x01 => PacketNumber::OneOctet(input.get_u8()),
-                        0x02 => PacketNumber::TwoOctet(input.get_u16::<BigEndian>()),
-                        0x03 => PacketNumber::FourOctet(input.get_u32::<BigEndian>()),
+                        0x10 => PacketNumber::OneOctet(input.get_u8()),
+                        0xF => PacketNumber::TwoOctet(input.get_u16::<BigEndian>()),
+                        0xE => PacketNumber::FourOctet(input.get_u32::<BigEndian>()),
                         _ => panic!("Unrecognised packet number length given.")
                    };
                    

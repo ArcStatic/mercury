@@ -1,0 +1,54 @@
+Multiplexing,,,,,,,
+,,,,,,,
+Current QUIC scheme (packets numbered upwards),,,,,,,
+,,,,,,,
+LongHeader,,,,,,,
+Initial bit,Packet type,Packet type value,Octet value,Collision?,,Existing Service Table,
+128,Version Negotation,1,129,Yes – RTP/RTCP,,,
+128,Client Initial,2,130,Yes – RTP/RTCP,,STUN,0-3
+128,Server Stateless Retry,3,131,Yes – RTP/RTCP,,ZRTP,16-19
+128,Server Cleartext,4,132,Yes – RTP/RTCP,,DTLS,20-63
+128,Client Cleartext,5,133,Yes – RTP/RTCP,,TURN channel,64-79
+128,Zero-RTT Protected,6,134,Yes – RTP/RTCP,,RTP/RTCP,128-191
+,,,,,,,
+ShortHeader,,,,,,,
+Initial bit,Connection Flag,Key Phase,Packet type,Packet type value,Octet value,Collision?,
+0,0,0,OneOctet,1,1,Yes – STUN,
+0,0,0,TwoOctet,2,2,Yes – STUN,
+0,0,0,FourOctet,3,3,Yes – STUN,
+0,0,32,OneOctet,1,33,Yes – DTLS,
+0,0,32,TwoOctet,2,34,Yes – DTLS,
+0,0,32,FourOctet,3,35,Yes – DTLS,
+0,64,0,OneOctet,1,65,Yes – TURN channel,
+0,64,0,TwoOctet,2,66,Yes – TURN channel,
+0,64,0,FourOctet,3,67,Yes – TURN channel,
+0,64,32,OneOctet,1,97,No,
+0,64,32,TwoOctet,2,98,No,
+0,64,32,FourOctet,3,99,No,
+,,,,,,,
+,,,,,,,
+AVTCORE-compliant scheme,,,,,,,
+,,,,,,,
+LongHeader,,,,,,,
+Initial bit,Packet type,Packet type value,Octet value,Collision?,,Existing Service Table,
+128,Version Negotation,127,255,No,,,
+128,Client Initial,126,254,No,,STUN,0-3
+128,Server Stateless Retry,125,253,No,,ZRTP,16-19
+128,Server Cleartext,124,252,No,,DTLS,20-63
+128,Client Cleartext,123,251,No,,TURN channel,64-79
+128,Zero-RTT Protected,122,250,No,,RTP/RTCP,128-191
+,,,,,,,
+ShortHeader,,,,,,,
+Initial bit,Connection Flag,Key Phase,Packet type,Packet type value,Octet value,Collision?,
+0,0,0,OneOctet,16,16,Yes – ZRTP,
+0,0,0,TwoOctet,15,15,No,
+0,0,0,FourOctet,14,14,No,
+0,0,32,OneOctet,16,48,Yes – DTLS,
+0,0,32,TwoOctet,15,47,Yes – DTLS,
+0,0,32,FourOctet,14,46,Yes – DTLS,
+0,64,0,OneOctet,16,80,No,
+0,64,0,TwoOctet,15,79,Yes – TURN channel,
+0,64,0,FourOctet,14,78,Yes – TURN channel,
+0,64,32,OneOctet,16,112,No,
+0,64,32,TwoOctet,15,111,No,
+0,64,32,FourOctet,14,110,No,

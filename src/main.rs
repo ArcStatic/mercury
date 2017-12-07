@@ -46,7 +46,7 @@ fn initial_connect(bind_str: &str, dest_str: &str){
 	
 	//Send ClientInitial packet
     Header::start_new_connection(bind_str, dest_str);
-    println!("\nStarting new QUIC connection...\nClientInitial packet sent.\n");
+    println!("\nStarting new QUIC connection...\nInitial packet sent.\n");
 }
 
 
@@ -140,7 +140,7 @@ fn listen(bind_str: &str){
 	                        Header::is_compatible_version(&recv_header);
 	                        //Header::is_new_connection(recv_header);
 	                    } else {
-	                        println!("Nothing of interest received.");
+	                        println!("Nothing of interest received.\n");
 	                    };
 	        }
 			Err(_) => continue,

@@ -21,12 +21,10 @@ pub enum PacketNumber{
 
 #[derive(Debug)]
 pub enum PacketType{
-    VersionNegotiation,
-    ClientInitial,
-    ServerStatelessRetry,
-    ServerCleartext,
-    ClientCleartext,
-    ZeroRTTProtected,
+    Initial,
+    Retry,
+    Handshake,
+    ZeroRTTProtected
 }
 
 #[derive(Debug)]
@@ -90,12 +88,10 @@ impl Header{
 			    //128 added to all values to mark this as a long header
 			    //AVTCORE compliance: packet numbers in range 127-122 (descending)
 			    match packet_type {
-			        PacketType::VersionNegotiation => buf.put_u8(128 + 0x7F),
-                    PacketType::ClientInitial => buf.put_u8(128 + 0x7E),
-                    PacketType::ServerStatelessRetry => buf.put_u8(128 + 0x7D),
-                    PacketType::ServerCleartext => buf.put_u8(128 + 0x7C),
-                    PacketType::ClientCleartext => buf.put_u8(128 + 0x7B),
-                    PacketType::ZeroRTTProtected => buf.put_u8(128 + 0x7A)
+			        PacketType::Initial => buf.put_u8(128 + 0x7F),
+                    PacketType::Retry => buf.put_u8(128 + 0x7E),
+                    PacketType::Handshake => buf.put_u8(128 + 0x7D),
+                    PacketType::ZeroRTTProtected => buf.put_u8(128 + 0x7C)
 			    }
 
 				buf.put_u64::<BigEndian>(connection_id);
@@ -213,14 +209,12 @@ impl Header{
                             let packet_marker = 0b01111111 & initial_octet;
                             println!("Packet type: {}", packet_marker);
                             
-                            //AVTCORE compliance: packet numbers in range 127-122 (descending)
+                            //AVTCORE compliance: packet numbers in range 127-124 (descending)
                             let packet_type = match packet_marker {
-                                0x7F => PacketType::VersionNegotiation,
-                                0x7E => PacketType::ClientInitial,
-                                0x7D => PacketType::ServerStatelessRetry,
-                                0x7C => PacketType::ServerCleartext,
-                                0x7B => PacketType::ClientCleartext,
-                                0x7A => PacketType::ZeroRTTProtected,
+                                0x7F => PacketType::Initial,
+                                0x7E => PacketType::Retry,
+                                0x7D => PacketType::Handshake,
+                                0x7C => PacketType::ZeroRTTProtected,
                                 _ => panic!("Unrecognised packet type for LongHeader")
                             };
                             
@@ -319,9 +313,9 @@ impl Header{
 	    payload_vec.write("Initial client packet payload!".as_bytes()).unwrap();
         
         //Initial handshake packets are always LongHeaders
-        //Must be padded to 1200 octets according to IETF specification (draft v7)
+        //Must be padded to 1200 octets according to IETF specification (draft v8)
         let client_initial = Header::LongHeader{
-		    packet_type : PacketType::ClientInitial,
+		    packet_type : PacketType::Initial,
 		    connection_id : 0x00a19d00,
 		    packet_number : 0b000001,
 		    version : 0b00000001,
@@ -351,7 +345,7 @@ impl Header{
 	pub fn is_new_connection(&self) -> bool{
 	    match self {
 	        &Header::LongHeader{ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => {        match packet_type { 
-	            &PacketType::ClientInitial => {println!("ClientInitial received - potential new connection detected."); return true;},
+	            &PacketType::Initial => {println!("Initial received - potential new connection detected."); return true;},
 	            _ => return false,
 	            }
 	        }

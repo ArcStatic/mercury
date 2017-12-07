@@ -149,11 +149,11 @@ impl Header{
 				};
 				
 				//AVTCORE compliance: packet types in descending order
-				//Last 5 bits - types range from 16 - 14 in current implementation
+				//Last 5 bits - types range from 31 - 29 in current implementation
 				let packet_type = match packet_number {
-				    PacketNumber::OneOctet(_) => 0x10,
-				    PacketNumber::TwoOctet(_) => 0xF,
-				    PacketNumber::FourOctet(_) => 0xE,
+				    PacketNumber::OneOctet(_) => 0x1F,
+				    PacketNumber::TwoOctet(_) => 0x1E,
+				    PacketNumber::FourOctet(_) => 0x1D,
 				};
 				
 				let initial_octet = 0b01111111 & (connection_flag_bit | key_phase_bit | packet_type);
@@ -275,24 +275,13 @@ impl Header{
 
                    println!("Connection id: {:?}", connection_id);
                    
-                   /*
-                   //5 remaining bits are packet type
-                   let packet_type = match 0b00011111 & initial_octet {
-                        0x01 => PacketType::PacketNumber,
-                        0x02 => PacketType::PacketNumber,
-                        0x03 => PacketType::PacketNumber,
-                        _ => panic!("Unrecognised packet type for ShortHeader")
-                   };
-                   
-                   println!("Packet type: {:?}", packet_type);
-                   */
                    
                    //Get packet_number
-                   //AVTCORE compliance: packet types range from 16-14 (descending)
+                   //AVTCORE compliance: packet types range from 31-29 (descending)
                    let packet_number = match 0b00011111 & initial_octet {
-                        0x10 => PacketNumber::OneOctet(input.get_u8()),
-                        0xF => PacketNumber::TwoOctet(input.get_u16::<BigEndian>()),
-                        0xE => PacketNumber::FourOctet(input.get_u32::<BigEndian>()),
+                        0x1F => PacketNumber::OneOctet(input.get_u8()),
+                        0x1E => PacketNumber::TwoOctet(input.get_u16::<BigEndian>()),
+                        0x1D => PacketNumber::FourOctet(input.get_u32::<BigEndian>()),
                         _ => panic!("Unrecognised packet number length given.")
                    };
                    

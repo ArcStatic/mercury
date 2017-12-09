@@ -41,7 +41,7 @@ pub enum Header {
 
 	ShortHeader{
 		key_phase : bool,
-		//connection_id is nonzero only if the bit for connection ID flag is set to 1
+		//connection_id is present only if the bit for connection ID flag is set to 0
 		connection_id : Option<ConnectionID>,
 		packet_number : PacketNumber,
 		//Payload is not a fixed size number of bits
@@ -333,7 +333,37 @@ impl Header{
 	    let dest_info = SocketAddr::from_str(dest_info).unwrap();
         	
         //Send ClientInitial packet to server        
-	    UdpSocket::send_to(&socket, AsRef::as_ref(&Header::generate_bytes(client_initial)), &dest_info).expect("Couldn't send message.");
+	    UdpSocket::send_to(&socket, AsRef::as_ref(&Header::generate_bytes(client_initial)), &dest_info).expect("Couldn't send Initial packet to server.");
+	    
+	    println!("\nStarting new QUIC connection...\nInitial packet sent.\n");
+	    
+	    //Set up a [u8] buffer for incoming messages/packets
+	    //Size 1200 bytes to match current QUIC specification
+	    let mut input_buf = [0; 1200];
+	    
+	    //Listen for reponse from server
+        println!("Listening for Initial from server...\n");
+        loop {
+            match socket.recv_from(&mut input_buf){
+                Ok(_) => {  //Convert [u8] into Bytes struct
+	                        let input_buf = Bytes::from(&input_buf[..]);
+	
+	                        //Parse received message
+	                        let recv_header = Header::parse_message(input_buf);
+	
+	                        //Print the raw bytestream
+	                        println!("recv_header: {:?}", &recv_header);
+	                        
+	                        //Check that server response is a Handshake packet
+	                        match recv_header {
+	                            Header::LongHeader{packet_type : HandShake, connection_id, packet_number, version, payload} => println!("Handshake response received from server.\n"),
+	                            _ => println!("Unrecognised response from server.\n"),
+	                            
+	                        }
+	            }
+			    Err(_) => continue,
+		    }
+        }
 	}
 
     //END START_NEW_CONNECTION METHOD

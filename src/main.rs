@@ -44,9 +44,8 @@ fn main() {
 //Start a connection with a listening server
 fn initial_connect(bind_str: &str, dest_str: &str){
 	
-	//Send ClientInitial packet
+	//Start new connection with server
     Header::start_new_connection(bind_str, dest_str);
-    println!("\nStarting new QUIC connection...\nInitial packet sent.\n");
 }
 
 
@@ -123,7 +122,7 @@ fn listen(bind_str: &str){
 	loop {
 		//Attempt to retrieve data from socket
 		match socket.recv_from(&mut input_buf){
-			Ok(_) => {//Convert [u8] into Bytes struct
+			Ok(addr) => {//Convert [u8] into Bytes struct
 	                    let input_buf = Bytes::from(&input_buf[..]);
 	
 	                    //println!("msg received: {:?}\n\n", &input_buf);
@@ -137,8 +136,26 @@ fn listen(bind_str: &str){
 	                    //Detect if received packet could be a new connection
 	                    if Header::is_new_connection(&recv_header){
 	                    
-	                        Header::is_compatible_version(&recv_header);
-	                        //Header::is_new_connection(recv_header);
+	                        //If compatible version, send a Handshake packet to client
+	                        if Header::is_compatible_version(&recv_header){
+	                            
+	                            //Write payload as bytes
+	                            let mut payload_vec : Vec<u8> = Vec::new();
+	                            payload_vec.write(b"Some TLS payload here");
+	                            
+	                            //Create LongHeader
+	                            let response = Header::LongHeader{
+		                                    packet_type : PacketType::Handshake,
+		                                    connection_id : 0x0000aaaa,
+		                                    packet_number : 0x00050a11,
+		                                    version : 0b00000001,
+		                                    payload : payload_vec
+		                        };
+	                            //Send LongHeader as a bytestream
+	                            UdpSocket::send_to(&socket, std::convert::AsRef::as_ref(&Header::generate_bytes(response)), &addr.1).expect("Couldn't send Handshake packet to client.");
+	                            println!("Handshake response sent to client.\n");
+	                        };
+	                        
 	                    } else {
 	                        println!("Nothing of interest received.\n");
 	                    };

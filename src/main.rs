@@ -98,7 +98,7 @@ fn send_msg(header_type: &str, msg: &str, bind_str: &str, dest_str: &str){
 	//println!("{:?}", &socket_addr.unwrap())
 	//Send message to dest_addr:dest_port
 	//TODO: Horrible conversion of Bytes to [u8] here - maybe get generate_bytes to return an array of u8 instead?
-	UdpSocket::send_to(&socket, std::convert::AsRef::as_ref(&Header::generate_bytes(msg_to_send)), &dest_info).expect("Couldn't send message.");
+	UdpSocket::send_to(&socket, std::convert::AsRef::as_ref(&Header::generate_bytes(msg_to_send)), &dest_info).expect("Couldn't send custom ZeroRTTProtected message.");
 	
 	println!("Message sent to {:?}", &dest_info);
 
@@ -133,31 +133,80 @@ fn listen(bind_str: &str){
 	                    //Print the raw bytestream
 	                    println!("recv_header: {:?}", &recv_header);
 	
-	                    //Detect if received packet could be a new connection
-	                    if Header::is_new_connection(&recv_header){
-	                    
-	                        //If compatible version, send a Handshake packet to client
-	                        if Header::is_compatible_version(&recv_header){
+	                    //Detect which packet type was received
+	                    //if Header::is_new_connection(&recv_header){
+	                    match &recv_header {
+	                        
+	                        //Initial sent by client
+                            &Header::LongHeader{packet_type : header::PacketType::Initial, connection_id, packet_number, version, ref payload} => {//If compatible version, send a Handshake packet to client
+	                            println!("Intial received from client - potential new connection.\n");
+	                            if Header::is_compatible_version(&recv_header){
+	                                
+	                                //Write payload as bytes
+	                                let mut payload_vec : Vec<u8> = Vec::new();
+	                                payload_vec.write(b"Some TLS payload here");
+	                                
+	                                //Create LongHeader
+	                                let response = Header::LongHeader{
+		                                        packet_type : PacketType::Handshake,
+		                                        connection_id : 0x0000aaaa,
+		                                        packet_number : 0x00050a11,
+		                                        version : 0b00000001,
+		                                        payload : payload_vec
+		                            };
+	                                //Send LongHeader as a bytestream
+	                                UdpSocket::send_to(&socket, std::convert::AsRef::as_ref(&Header::generate_bytes(response)), &addr.1).expect("Couldn't send Handshake packet to client.");
+	                                println!("Handshake response sent to client.\n");
+	                            };
+	                        }
+	                        
+	                        
+	                        //Handshake sent by client
+	                        &Header::LongHeader{packet_type : header::PacketType::Handshake, connection_id, packet_number, version, ref payload} => {
+	                            println!("Handshake received from client.");
 	                            
 	                            //Write payload as bytes
-	                            let mut payload_vec : Vec<u8> = Vec::new();
-	                            payload_vec.write(b"Some TLS payload here");
-	                            
-	                            //Create LongHeader
-	                            let response = Header::LongHeader{
-		                                    packet_type : PacketType::Handshake,
-		                                    connection_id : 0x0000aaaa,
-		                                    packet_number : 0x00050a11,
-		                                    version : 0b00000001,
-		                                    payload : payload_vec
-		                        };
-	                            //Send LongHeader as a bytestream
-	                            UdpSocket::send_to(&socket, std::convert::AsRef::as_ref(&Header::generate_bytes(response)), &addr.1).expect("Couldn't send Handshake packet to client.");
-	                            println!("Handshake response sent to client.\n");
-	                        };
+                                let mut payload_vec : Vec<u8> = Vec::new();
+                                payload_vec.write(b"Some ZeroRTT payload here");
+                                
+                                //Create LongHeader
+                                let response = Header::LongHeader{
+	                                        packet_type : PacketType::ZeroRTTProtected,
+	                                        connection_id : 0x0000aaaa,
+	                                        packet_number : 0x00050a11,
+	                                        version : 0b00000001,
+	                                        payload : payload_vec
+	                            };
+                                //Send LongHeader as a bytestream
+                                UdpSocket::send_to(&socket, std::convert::AsRef::as_ref(&Header::generate_bytes(response)), &addr.1).expect("Couldn't send ZeroRTTPRotected packet to client.");
+                                println!("ZeroRTTProtected sent to client.\n");
+	                        }
 	                        
-	                    } else {
-	                        println!("Nothing of interest received.\n");
+	                        
+	                        //ZeroRTTProtected sent by client
+	                        &Header::LongHeader{packet_type : header::PacketType::ZeroRTTProtected, connection_id, packet_number, version, ref payload} => {
+	                            println!("ZeroRTTProtected received from client.");
+	                            
+	                            //Write payload as bytes
+                                let mut payload_vec : Vec<u8> = Vec::new();
+                                payload_vec.write(b"Some ZeroRTT response payload here");
+                                
+                                //Create LongHeader
+                                let response = Header::LongHeader{
+	                                        packet_type : PacketType::ZeroRTTProtected,
+	                                        connection_id : 0x0000aaaa,
+	                                        packet_number : 0x00050a11,
+	                                        version : 0b00000001,
+	                                        payload : payload_vec
+	                            };
+                                //Send LongHeader as a bytestream
+                                UdpSocket::send_to(&socket, std::convert::AsRef::as_ref(&Header::generate_bytes(response)), &addr.1).expect("Couldn't send ZeroRTTPRotected packet to client.");
+                                println!("ZeroRTTProtected sent to client.\n");
+	                        }
+	                        
+                            _ => println!("Unrecognised packet type received.\n"),
+                            
+	                    //End of packet matching block  
 	                    };
 	        }
 			Err(_) => continue,

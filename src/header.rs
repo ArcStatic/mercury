@@ -313,7 +313,6 @@ impl Header{
 	    payload_vec.write("Initial client packet payload!".as_bytes()).unwrap();
         
         //Initial handshake packets are always LongHeaders
-        //Must be padded to 1200 octets according to IETF specification (draft v8)
         let client_initial = Header::LongHeader{
 		    packet_type : PacketType::Initial,
 		    connection_id : 0x00a19d00,
@@ -332,7 +331,8 @@ impl Header{
 	    //Create SocketAddr from supplied addr:port str
 	    let dest_info = SocketAddr::from_str(dest_info).unwrap();
         	
-        //Send ClientInitial packet to server        
+        //Send Initial packet to server
+        //generate_bytes pads sent packet to 1200 octets according to IETF specification (draft v8)        
 	    UdpSocket::send_to(&socket, AsRef::as_ref(&Header::generate_bytes(client_initial)), &dest_info).expect("Couldn't send Initial packet to server.");
 	    
 	    println!("\nStarting new QUIC connection...\nInitial packet sent.\n");
@@ -342,7 +342,7 @@ impl Header{
 	    let mut input_buf = [0; 1200];
 	    
 	    //Listen for reponse from server
-        println!("Listening for Initial from server...\n");
+        println!("Listening for response to Initial from server...\n");
         loop {
             match socket.recv_from(&mut input_buf){
                 Ok(_) => {  //Convert [u8] into Bytes struct
@@ -356,14 +356,112 @@ impl Header{
 	                        
 	                        //Check that server response is a Handshake packet
 	                        match recv_header {
-	                            Header::LongHeader{packet_type : HandShake, connection_id, packet_number, version, payload} => println!("Handshake response received from server.\n"),
+	                            Header::LongHeader{packet_type : PacketType::Handshake, connection_id, packet_number, version, payload} => println!("Response received from server: Handshake.\n"),
 	                            _ => println!("Unrecognised response from server.\n"),
 	                            
 	                        }
+	                        break;
 	            }
 			    Err(_) => continue,
 		    }
         }
+        
+        //Send Handshake packet carrying TLS {Finished} message to server
+        //Write payload as bytes
+	    let mut payload_vec : Vec<u8> = Vec::new();
+	    payload_vec.write(b"TLS Finished message here.");
+        
+        //Initial handshake packets are always LongHeaders
+        //Must be padded to 1200 octets according to IETF specification (draft v8)
+        let client_handshake = Header::LongHeader{
+		    packet_type : PacketType::Handshake,
+		    connection_id : 0x00a19d00,
+		    packet_number : 0b000001,
+		    version : 0b00000001,
+		    //Payload is not a fixed size number of bits
+		    payload : payload_vec,
+	    };
+	    
+	    //Send Handshake packet to server
+        //generate_bytes pads sent packet to 1200 octets according to IETF specification (draft v8)        
+	    UdpSocket::send_to(&socket, AsRef::as_ref(&Header::generate_bytes(client_handshake)), &dest_info).expect("Couldn't send Handshake packet to server.\n");
+	    println!("Handshake sent to server.\n");
+	    
+	    //Listen for reponse from server
+        println!("Listening for response to Handshake from server...\n");
+        loop {
+            match socket.recv_from(&mut input_buf){
+                Ok(_) => {  //Convert [u8] into Bytes struct
+	                        let input_buf = Bytes::from(&input_buf[..]);
+	
+	                        //Parse received message
+	                        let recv_header = Header::parse_message(input_buf);
+	
+	                        //Print the raw bytestream
+	                        println!("recv_header: {:?}", &recv_header);
+	                        
+	                        //Check that server response is a ZeroRTTProtected packet
+	                        match recv_header {
+	                            Header::LongHeader{packet_type : PacketType::ZeroRTTProtected, connection_id, packet_number, version, payload} => println!("Response received from server: ZeroRTTProtected.\n"),
+	                            _ => println!("Unrecognised response from server.\n"),
+	                            
+	                        }
+	                        break;
+	            }
+			    Err(_) => continue,
+		    }
+        }
+        
+        //Send 3 ZeroRTTProtected packets for testing
+        for i in 0..3{
+            //Write payload as bytes
+	        let mut payload_vec : Vec<u8> = Vec::new();
+	        payload_vec.write(b"(Application-relevant data here)");
+            
+            //Initial handshake packets are always LongHeaders
+            //Must be padded to 1200 octets according to IETF specification (draft v8)
+            let client_zero_rtt = Header::LongHeader{
+		        packet_type : PacketType::ZeroRTTProtected,
+		        connection_id : 0x00a19d00,
+		        packet_number : 0b000001,
+		        version : 0b00000001,
+		        //Payload is not a fixed size number of bits
+		        payload : payload_vec,
+	        };
+	        
+	        //Send Handshake packet to server
+            //generate_bytes pads sent packet to 1200 octets according to IETF specification (draft v8)        
+	        UdpSocket::send_to(&socket, AsRef::as_ref(&Header::generate_bytes(client_zero_rtt)), &dest_info).expect("Couldn't send ZeroRTTProtected packet to server.\n");
+	        println!("Handshake sent to server.\n");
+	        
+	        //Listen for reponse from server
+            println!("Listening for response to ZeroRTTPRotected from server...\n");
+            loop {
+                match socket.recv_from(&mut input_buf){
+                    Ok(_) => {  //Convert [u8] into Bytes struct
+	                            let input_buf = Bytes::from(&input_buf[..]);
+	
+	                            //Parse received message
+	                            let recv_header = Header::parse_message(input_buf);
+	
+	                            //Print the raw bytestream
+	                            println!("recv_header: {:?}", &recv_header);
+	                            
+	                            //Check that server response is a ZeroRTTProtected packet
+	                            match recv_header {
+	                                Header::LongHeader{packet_type : PacketType::ZeroRTTProtected, connection_id, packet_number, version, payload} => println!("Response received from server: ZeroRTTProtected.\n"),
+	                                _ => println!("Unrecognised response from server.\n"),
+	                                
+	                            }
+	                            break;
+	                }
+			        Err(_) => continue,
+		        }
+            }
+        };
+        
+        println!("Connection process complete.\n");
+        
 	}
 
     //END START_NEW_CONNECTION METHOD
@@ -374,10 +472,12 @@ impl Header{
 	
 	pub fn is_new_connection(&self) -> bool{
 	    match self {
-	        &Header::LongHeader{ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => {        match packet_type { 
-	            &PacketType::Initial => {println!("Initial received - potential new connection detected."); return true;},
-	            _ => return false,
-	            }
+	        &Header::LongHeader{ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => {        
+                match packet_type { 
+	                &PacketType::Initial => {println!("Initial received - potential new connection detected."); return true;},
+	                &PacketType::Handshake => {println!("Handshake received - not a new connection."); return false;},
+	                _ => {println!("Nothing of interest received."); return false;},
+	                }
 	        }
 	        _ => return false,
 	        
@@ -391,9 +491,10 @@ impl Header{
 	
 	pub fn is_compatible_version(&self) -> bool{
 	    match self {
-	        &Header::LongHeader{ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => {        match version { 
-	            &0b00000001 => {println!("Compatible version detected: {:?}\n", &version); return true;},
-	            _ => {println!("Incompatible version detected: {:?}\n", version); return false;},
+	        &Header::LongHeader{ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => {        
+	            match version { 
+	                &0b00000001 => {println!("Compatible version detected: {:?}\n", &version); return true;},
+	                _ => {println!("Incompatible version detected: {:?}\n", version); return false;},
 	            }
 	        }
 	        _ => return false,

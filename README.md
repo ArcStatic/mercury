@@ -15,10 +15,13 @@ This is an undergraduate dissertation project aiming to implement as much of the
 
 ### Usage:
 Create a server listening on `addr:port`:
+
 `cargo run listen [addr]:[port]`
 
 Create a client which sets up a connection with a server at `dest-addr:dest-port`:
+
 `cargo run start [addr]:[port] [dest-addr]:[dest-port]`
 
 Create a client which sends a ShortHeader or LongHeader message (`[packet_type]`) with a custom payload to `dest-addr:dest-port`:
+
 `cargo run send packet_type payload [addr]:[port] [dest-addr]:[dest-port]`

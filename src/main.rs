@@ -131,7 +131,8 @@ fn listen(bind_str: &str){
 	                    let recv_header = Header::parse_message(input_buf);
 	
 	                    //Print the raw bytestream
-	                    println!("recv_header: {:?}", &recv_header);
+	                    //TODO: uncomment
+	                    //println!("recv_header: {:?}", &recv_header);
 	
 	                    //Detect which packet type was received
 	                    //if Header::is_new_connection(&recv_header){
@@ -167,41 +168,40 @@ fn listen(bind_str: &str){
 	                            
 	                            //Write payload as bytes
                                 let mut payload_vec : Vec<u8> = Vec::new();
-                                payload_vec.write(b"Some ZeroRTT payload here");
+                                payload_vec.write(b"Some application payload here");
                                 
-                                //Create LongHeader
-                                let response = Header::LongHeader{
-	                                        packet_type : PacketType::ZeroRTTProtected,
-	                                        connection_id : 0x0000aaaa,
-	                                        packet_number : 0x00050a11,
-	                                        version : 0b00000001,
+                                //Create ShortHeader
+                                let response = Header::ShortHeader{
+	                                        key_phase : true,
+	                                        connection_id : Some(ConnectionID(0x0000aaaa)),
+	                                        packet_number : PacketNumber::FourOctet(0x0040ffff),
 	                                        payload : payload_vec
 	                            };
-                                //Send LongHeader as a bytestream
-                                UdpSocket::send_to(&socket, std::convert::AsRef::as_ref(&Header::generate_bytes(response)), &addr.1).expect("Couldn't send ZeroRTTPRotected packet to client.");
-                                println!("ZeroRTTProtected sent to client.\n");
+                                //Send ShortHeader as a bytestream
+                                UdpSocket::send_to(&socket, std::convert::AsRef::as_ref(&Header::generate_bytes(response)), &addr.1).expect("Couldn't send 1-RTT ShortHeader packet to client.");
+                                println!("1-RTT ShortHeader sent to client.\n");
 	                        }
 	                        
 	                        
-	                        //ZeroRTTProtected sent by client
-	                        &Header::LongHeader{packet_type : header::PacketType::ZeroRTTProtected, connection_id, packet_number, version, ref payload} => {
-	                            println!("ZeroRTTProtected received from client.");
+	                        //1-RTT ShortHeader sent by client
+	                        &Header::ShortHeader{key_phase: true, ref connection_id, ref packet_number, ref payload} => {
+	                            println!("1-RTT ShortHeader received from client.");
 	                            
 	                            //Write payload as bytes
                                 let mut payload_vec : Vec<u8> = Vec::new();
-                                payload_vec.write(b"Some ZeroRTT response payload here");
+                                payload_vec.write(b"Some ShortHeader response payload here");
                                 
                                 //Create LongHeader
-                                let response = Header::LongHeader{
-	                                        packet_type : PacketType::ZeroRTTProtected,
-	                                        connection_id : 0x0000aaaa,
-	                                        packet_number : 0x00050a11,
-	                                        version : 0b00000001,
+                                let response = Header::ShortHeader{
+	                                        key_phase : true,
+	                                        connection_id : Some(ConnectionID(0x0000aaaa)),
+	                                        packet_number : PacketNumber::FourOctet(0x00050a11),
 	                                        payload : payload_vec
 	                            };
-                                //Send LongHeader as a bytestream
-                                UdpSocket::send_to(&socket, std::convert::AsRef::as_ref(&Header::generate_bytes(response)), &addr.1).expect("Couldn't send ZeroRTTPRotected packet to client.");
-                                println!("ZeroRTTProtected sent to client.\n");
+	                            
+                                //Send ShortHeader as a bytestream
+                                UdpSocket::send_to(&socket, std::convert::AsRef::as_ref(&Header::generate_bytes(response)), &addr.1).expect("Couldn't send 1-RTT ShortHeader packet to client.");
+                                println!("1-RTT ShortHeader sent to client.\n");
 	                        }
 	                        
                             _ => println!("Unrecognised packet type received.\n"),

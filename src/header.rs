@@ -352,7 +352,8 @@ impl Header{
 	                        let recv_header = Header::parse_message(input_buf);
 	
 	                        //Print the raw bytestream
-	                        println!("recv_header: {:?}", &recv_header);
+	                        //TODO: uncomment
+	                        //println!("recv_header: {:?}", &recv_header);
 	                        
 	                        //Check that server response is a Handshake packet
 	                        match recv_header {
@@ -398,11 +399,12 @@ impl Header{
 	                        let recv_header = Header::parse_message(input_buf);
 	
 	                        //Print the raw bytestream
-	                        println!("recv_header: {:?}", &recv_header);
+	                        //TODO: uncomment
+	                        //println!("recv_header: {:?}", &recv_header);
 	                        
 	                        //Check that server response is a ZeroRTTProtected packet
 	                        match recv_header {
-	                            Header::LongHeader{packet_type : PacketType::ZeroRTTProtected, connection_id, packet_number, version, payload} => println!("Response received from server: ZeroRTTProtected.\n"),
+	                            Header::ShortHeader{key_phase, connection_id, packet_number, payload} => println!("Response received from server: 1-RTT ShortHeader.\n"),
 	                            _ => println!("Unrecognised response from server.\n"),
 	                            
 	                        }
@@ -412,7 +414,7 @@ impl Header{
 		    }
         }
         
-        //Send 3 ZeroRTTProtected packets for testing
+        //Send 3 1-RTT ShortHeader packets for testing
         for i in 0..3{
             //Write payload as bytes
 	        let mut payload_vec : Vec<u8> = Vec::new();
@@ -420,22 +422,21 @@ impl Header{
             
             //Initial handshake packets are always LongHeaders
             //Must be padded to 1200 octets according to IETF specification (draft v8)
-            let client_zero_rtt = Header::LongHeader{
-		        packet_type : PacketType::ZeroRTTProtected,
-		        connection_id : 0x00a19d00,
-		        packet_number : 0b000001,
-		        version : 0b00000001,
+            let client_short = Header::ShortHeader{
+		        key_phase : true,
+		        connection_id : Some(ConnectionID(0x00a19d00)),
+		        packet_number : PacketNumber::TwoOctet(0x000011a0),
 		        //Payload is not a fixed size number of bits
 		        payload : payload_vec,
 	        };
 	        
 	        //Send Handshake packet to server
             //generate_bytes pads sent packet to 1200 octets according to IETF specification (draft v8)        
-	        UdpSocket::send_to(&socket, AsRef::as_ref(&Header::generate_bytes(client_zero_rtt)), &dest_info).expect("Couldn't send ZeroRTTProtected packet to server.\n");
-	        println!("Handshake sent to server.\n");
+	        UdpSocket::send_to(&socket, AsRef::as_ref(&Header::generate_bytes(client_short)), &dest_info).expect("Couldn't send 1-RTT ShortHeader packet to server.\n");
+	        println!("1-RTT ShortHeader sent to server.\n");
 	        
 	        //Listen for reponse from server
-            println!("Listening for response to ZeroRTTPRotected from server...\n");
+            println!("Listening for response to 1-RTT ShortHeader from server...\n");
             loop {
                 match socket.recv_from(&mut input_buf){
                     Ok(_) => {  //Convert [u8] into Bytes struct
@@ -445,11 +446,12 @@ impl Header{
 	                            let recv_header = Header::parse_message(input_buf);
 	
 	                            //Print the raw bytestream
-	                            println!("recv_header: {:?}", &recv_header);
+	                            //TODO: uncomment
+	                            //println!("recv_header: {:?}", &recv_header);
 	                            
-	                            //Check that server response is a ZeroRTTProtected packet
+	                            //Check that server response is a ShortHeader packet with key_phase 1
 	                            match recv_header {
-	                                Header::LongHeader{packet_type : PacketType::ZeroRTTProtected, connection_id, packet_number, version, payload} => println!("Response received from server: ZeroRTTProtected.\n"),
+	                                Header::ShortHeader{key_phase: true, connection_id, packet_number, payload} => println!("Response received from server: ShortHeader.\n"),
 	                                _ => println!("Unrecognised response from server.\n"),
 	                                
 	                            }

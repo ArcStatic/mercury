@@ -25,6 +25,7 @@ fn main() {
     //cargo run send packet_type "some payload message" bind_ip:bind_port dest_ip:dest_port
     //cargo run listen bind_ip:bind_port
     //cargo run start bind_ip:bind_port dest_ip:dest_port
+    //cargo run tls bind_ip:bind_port dest_ip:dest_port
     let args: Vec<String> = env::args().collect();
     
     println!("{:?}", args);
@@ -33,6 +34,8 @@ fn main() {
     	"send" => send_msg(&args[2], &args[3], &args[4], &args[5]),
     	"listen" => listen(&args[2]),
     	"start" => initial_connect(&args[2], &args[3]),
+    	"tls" => header::tls_start_client(&args[2], &args[3]),
+        "tls_test" => header::tls_start_client_test(&args[2], &args[3]),
     	//TODO: anything other than panic! here
     	_ => panic!("Invalid first argument supplied - 'send', 'listen' or 'start' only."),
     }
@@ -189,7 +192,7 @@ fn listen(bind_str: &str){
 	                            
 	                            //Write payload as bytes
                                 let mut payload_vec : Vec<u8> = Vec::new();
-                                payload_vec.write(b"Some ShortHeader response payload here");
+                                payload_vec.write(b"Some ShortHeader response payload here");                               
                                 
                                 //Create LongHeader
                                 let response = Header::ShortHeader{

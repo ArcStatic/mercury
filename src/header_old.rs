@@ -1,5 +1,4 @@
 extern crate rustls;
-extern crate bytes;
 extern crate webpki_roots;
 
 use bytes::{Bytes, BytesMut, Buf, BufMut, IntoBuf, BigEndian};
@@ -17,44 +16,17 @@ use std::io::stdout;
 use std::result::Result;
 use std::convert::AsRef;
 
-#[derive(Debug)]
+
 pub struct TlsBuffer{
-	buf : Vec<u8>
+	byte_buf : [u8],
 }
 
 impl Read for TlsBuffer {
-	fn read (&mut self, mut output : &mut [u8]) -> Result<usize, Error> {
+	fn read (&mut self, output : &mut [u8]) -> Result<usize, Error> {
 		//let input = &mut Self{buf};
-		//let mut output = &mut self.buf;
+		let mut output = &mut self.byte_buf;
 		//FIXME: Err is never returned
-		//return Ok(output.len());
-		match output.write(&mut self.buf) {
-			Ok(_) => {
-				//println!("Read impl: self: {:?}", &mut self.buf);
-				//output.write(&mut self.buf);
-				//let output = output.write(b"custom msg");
-				println!("\nCustom read...\n");
-				println!("Read impl: self: {:?}\n", &mut self.buf);
-				println!("Read impl: output: {:?}\n", &mut self.buf);
-						return Ok(output.len());
-					 },
-			Err(e) => return Err(e)
-		}
-	}
-}
-
-impl Write for TlsBuffer{
-	fn write(&mut self, input: &[u8]) -> Result<usize, Error>{
-		println!("\nCustom write...\n");
-		&mut self.buf.write(input)?;
-		println!("tls_buf: {:?}", &mut self.buf);
-		Ok(self.buf.len())
-	}
-
-	fn flush(&mut self) -> Result<(), Error>{
-		println!("\nCustom flush...\n");
-		&mut self.buf.flush()?;
-		Ok(())
+		return Ok(output.len());
 	}
 }
 
@@ -277,7 +249,7 @@ impl Header{
                             let version = input.get_u32::<BigEndian>();
                             
                             //Get payload
-                            let payload = bytes::Buf::bytes(&input).to_vec();
+                            let payload = input.bytes().to_vec();
                             //println!("Payload as str: {:?}", from_utf8(&payload).unwrap());
                             
                             return Header::LongHeader{
@@ -331,8 +303,7 @@ impl Header{
                    println!("Packet number: {:?}", packet_number);
                    
                    //Get payload
-                   //let payload = input.bytes().to_vec();
-					let payload = bytes::Buf::bytes(&input).to_vec();
+                   let payload = input.bytes().to_vec();
                    
                    //println!("Payload as str: {:?}", from_utf8(&payload).unwrap());
                    
@@ -559,7 +530,7 @@ impl Header{
     
 }
 
-// rustls
+/* rustls
 pub fn tls_start_client(bind_str : &str, dest_info : &str){
     println!("Starting TLS stuff");
     
@@ -571,57 +542,36 @@ pub fn tls_start_client(bind_str : &str, dest_info : &str){
     
     //Create socket
     let bind_info = SocketAddr::from_str(bind_str).unwrap();
-	let socket = UdpSocket::bind(&bind_info).unwrap();
+	let socket = UdpSocket::bind(&bind_info).unwrap(); 
 
-	//let mut tls_buf = TlsBuffer{buf : Vec::new()};
-	let mut tls_buf = TlsBuffer{buf : Vec::with_capacity(1200)};
-	//let mut tls_buf = TlsBuffer{buf : vec![0;200]};
+	let mut bytes_buf = Vec::new().writer();
+	//let mut bytes_buf = Bytes::from("Hi, first TLS message here.").into_buf();
+	//let buf_reader = bytes_buf.reader();
 
     //Create client
     let mut client = rustls::ClientSession::new(&config_ref_count, "quic-rust.com");
     
-    let mut tls_stream = rustls::Stream::new(&mut client, &mut tls_buf);
-
-    tls_stream.write(b"Hi, first TLS message here.");
-	println!("stream: {:?}\n", tls_stream.sock);
-
-    let mut plaintext : Vec<u8> = vec![0;200];
-	//let mut plaintext : Vec<u8> = Vec::new();
-	println!("Starting plaintext read...\n");
-    tls_stream.sock.read(&mut plaintext).unwrap();
-	println!("TLS stream read complete.\n");
-    stdout().write_all(&plaintext);
-	//println!("\n\nPlaintext final: {:?}", &mut plaintext);
+    let mut tls_stream = rustls::Stream::new(&mut client, &mut bytes_buf);
+	//let mut tls_stream = rustls::Stream::new(&mut client, &mut socket);
+    
+    tls_stream.write(b"Hi, first TLS message here.").unwrap;
+    
+    let mut plaintext = Vec::new();
+    //tls_stream.read_to_end(&mut plaintext).unwrap();
+    //stdout().write_all(&plaintext).unwrap();
     
 }
-//
+*/
 
 //
-pub fn tls_start_client_test(bind_str : &str, dest_info : &str){
+pub fn tls_start_client(bind_str : &str, dest_info : &str){
     println!("Starting TLS stuff");
     
     //Create socket
     let bind_info = SocketAddr::from_str(bind_str).unwrap();
-	let socket = UdpSocket::bind(&bind_info).unwrap();
-
-	let mut tls_buf = TlsBuffer{buf : Vec::new()};
-	tls_buf.buf.write(b"Hi, tls message here.");
-	println!("{:?}", tls_buf.buf);
-	let mut recv_buf : Vec<u8> = vec![0;100];
-	//let mut recv_buf : Vec<u8> = Vec::with_capacity(100);
-	//write call on this has some odd behaviour:
-	//write within read trait behaviour puts stuff at the start of vec
-	//...but write in the line below puts stuff at the end of vec
-	//recv_buf.write(b"init");
-	println!("{:?}", recv_buf);
-	tls_buf.read(&mut recv_buf);
-	println!("{:?}\n", recv_buf);
-
-	tls_buf.buf.clear();
-	println!("{:?}", tls_buf.buf);
-
-	tls_buf.write(b"New tls buf message");
-	println!("{:?}", tls_buf.buf);
+	let socket = UdpSocket::bind(&bind_info).unwrap(); 
+    
+    
 }
 //
 

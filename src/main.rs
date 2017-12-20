@@ -1,21 +1,34 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_must_use)]
+#![allow(unused_imports)]
+
+
 extern crate mio;
 extern crate bytes;
 extern crate quickcheck;
-
-use mio::net::UdpSocket;
+extern crate rustls;
+extern crate webpki;
+extern crate webpki_roots;
 
 mod header;
 
+use mio::net::UdpSocket;
+use rustls::{Session, ServerConfig};
+use std::sync::Arc;
 use std::env;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::io::Write;
+use std::io::stdout;
+use std::io::{self, BufReader};
+use std::io::prelude::*;
+use std::fs::File;
 
 //use bytes::{Bytes, BytesMut, BufMut, BigEndian};
 use bytes::{Bytes};
 
-use header::{Header, PacketType, PacketNumber, ConnectionID};
-
+use header::{Header, PacketType, PacketNumber, ConnectionID, TlsBuffer};
 
 fn main() {
     
@@ -33,6 +46,7 @@ fn main() {
     match args[1].trim() {
     	"send" => send_msg(&args[2], &args[3], &args[4], &args[5]),
     	"listen" => listen(&args[2]),
+        "listen_tls" => listen_tls(&args[2]),
     	"start" => initial_connect(&args[2], &args[3]),
     	"tls" => header::tls_start_client(&args[2], &args[3]),
         "tls_test" => header::tls_start_client_test(&args[2], &args[3]),
@@ -101,7 +115,7 @@ fn send_msg(header_type: &str, msg: &str, bind_str: &str, dest_str: &str){
 	//println!("{:?}", &socket_addr.unwrap())
 	//Send message to dest_addr:dest_port
 	//TODO: Horrible conversion of Bytes to [u8] here - maybe get generate_bytes to return an array of u8 instead?
-	UdpSocket::send_to(&socket, std::convert::AsRef::as_ref(&Header::generate_bytes(msg_to_send)), &dest_info).expect("Couldn't send custom ZeroRTTProtected message.");
+	UdpSocket::send_to(&socket, std::convert::AsRef::as_ref(&Header::generate_bytes(msg_to_send)), &dest_info).expect("Couldn't send custom message.");
 	
 	println!("Message sent to {:?}", &dest_info);
 
@@ -220,4 +234,80 @@ fn listen(bind_str: &str){
 	
 	//Attempt to print as a String
 	//println!("Output as str: {:?}", std::str::from_utf8(&output_buf.payload));
+}
+
+
+//Listen for incoming messages/packet types
+fn listen_tls(bind_str: &str){
+    println!("Listening for TLS");
+
+	//Prepare cert and key in DER format
+    let key_file = File::open("quic-rust-new.pem");
+    let mut key_read = BufReader::new(key_file.unwrap());
+	let cert_file = File::open("quic-rust-new.crt");
+	let mut cert_read = BufReader::new(cert_file.unwrap());
+	let mut der_key = rustls::internal::pemfile::rsa_private_keys(&mut key_read).unwrap();
+	let der_cert = rustls::internal::pemfile::certs(&mut cert_read).unwrap();
+	println!("{:?}\n", key_read);
+	println!("{:?}\n", rustls::internal::pemfile::certs(&mut key_read));
+	println!("der_key: {:?}.\n", der_key);
+	println!("der_cert: {:?}.\n", der_cert);
+	println!("der_cert len: {:?}.\n", der_cert.len());
+	println!("Key/cert parsing done.\n");
+
+    //Create and bind socket
+    //let bind_info = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127,0,0,1)), 8080);
+    let bind_info = SocketAddr::from_str(bind_str).unwrap();
+    let socket = UdpSocket::bind(&bind_info).unwrap();
+	println!("Socket bound.\n");
+
+	//Default ciphersuites
+	let mut config = rustls::ServerConfig::new();
+	//Add key and cert to config
+	ServerConfig::set_single_cert(&mut config, der_cert, der_key.remove(0));
+	println!("Key/cert added to config.\n");
+
+    let config_ref_count = Arc::new(config);
+    let mut tls_buf = TlsBuffer{buf : Vec::new()};
+
+    //Create server
+    let mut server = rustls::ServerSession::new(&config_ref_count);
+
+    let mut tls_stream = rustls::Stream::new(&mut server, &mut tls_buf);
+
+    //Set up a [u8] buffer for incoming messages/packets
+    //Size 1200 bytes to match current QUIC specification
+    let mut input_buf = vec![0;100];
+
+	println!("Listening...");
+    loop {
+        //Attempt to retrieve data from socket
+        match socket.recv_from(&mut input_buf){
+            Ok(addr) => {//Convert [u8] into Bytes struct
+                let input_buf = Bytes::from(&input_buf[..]);
+
+                println!("TLS message received from client.\n");
+                stdout().write_all(&input_buf);
+
+				tls_stream.sock.write_all(&input_buf);
+
+                //let read_var = tls_stream.sess.read_tls(&mut tls_stream.sock);
+				let read_var = tls_stream.sess.read_tls(&mut tls_stream.sock);
+                println!("\n\nread_var = {:?}\n", &read_var);
+                stdout().write_all(&tls_stream.sock.buf);
+                let proc_var = tls_stream.sess.process_new_packets();
+                println!("\n\nproc_var = {:?}\n", &proc_var);
+                stdout().write_all(&tls_stream.sock.buf);
+
+                //Send ShortHeader as a bytestream
+                UdpSocket::send_to(&socket, b"response tls message here", &addr.1).expect("Couldn't TLS response to client.");
+                println!("\n\nTLS response sent to client.\n");
+				//println!("Listening...");
+				break;
+
+            }
+            Err(_) => continue,
+        };
+    }
+
 }

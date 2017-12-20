@@ -1,8 +1,16 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+#![allow(unused_must_use)]
+
 extern crate rustls;
 extern crate bytes;
+extern crate webpki;
 extern crate webpki_roots;
 
 use bytes::{Bytes, BytesMut, Buf, BufMut, IntoBuf, BigEndian};
+use header::rustls::Session;
+use header::webpki::DNSNameRef;
 
 use mio::net::UdpSocket;
 
@@ -14,28 +22,27 @@ use std::io::Read;
 use std::io::Write;
 use std::io::Error;
 use std::io::stdout;
+use std::io::{self, BufReader};
+use std::io::prelude::*;
+use std::fs::File;
 use std::result::Result;
 use std::convert::AsRef;
 
 #[derive(Debug)]
 pub struct TlsBuffer{
-	buf : Vec<u8>
+	pub buf : Vec<u8>
 }
 
 impl Read for TlsBuffer {
 	fn read (&mut self, mut output : &mut [u8]) -> Result<usize, Error> {
-		//let input = &mut Self{buf};
-		//let mut output = &mut self.buf;
-		//FIXME: Err is never returned
-		//return Ok(output.len());
 		match output.write(&mut self.buf) {
 			Ok(_) => {
 				//println!("Read impl: self: {:?}", &mut self.buf);
 				//output.write(&mut self.buf);
 				//let output = output.write(b"custom msg");
 				println!("\nCustom read...\n");
-				println!("Read impl: self: {:?}\n", &mut self.buf);
-				println!("Read impl: output: {:?}\n", &mut self.buf);
+				//println!("Read impl: self: {:?}\n", &mut self.buf);
+				//println!("Read impl: output: {:?}\n", &mut self.buf);
 						return Ok(output.len());
 					 },
 			Err(e) => return Err(e)
@@ -47,7 +54,7 @@ impl Write for TlsBuffer{
 	fn write(&mut self, input: &[u8]) -> Result<usize, Error>{
 		println!("\nCustom write...\n");
 		&mut self.buf.write(input)?;
-		println!("tls_buf: {:?}", &mut self.buf);
+		//println!("tls_buf: {:?}", &mut self.buf);
 		Ok(self.buf.len())
 	}
 
@@ -560,39 +567,97 @@ impl Header{
 }
 
 // rustls
-pub fn tls_start_client(bind_str : &str, dest_info : &str){
+pub fn tls_start_client(bind_str : &str, dest_str : &str){
     println!("Starting TLS stuff");
     
     //Create TLS config
     let mut config = rustls::ClientConfig::new();
-    //Add Mozilla set of root certificates to config
-    config.root_store.add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
+
+	//Add self-signed cert for testing
+	let key_file = File::open("quic-rust.pem");
+	let mut key_read = BufReader::new(key_file.unwrap());
+	println!("cert store len: {:?}", key_read);
+	println!("{:?}", config.root_store.len());
+	let cert_var = config.root_store.add_pem_file(&mut key_read);
+	println!("cert_var: {:?}", cert_var);
+	println!("cert store len: {:?}", config.root_store.len());
+
+	//Add Mozilla set of root certificates to config
+	config.root_store.add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
+	println!("cert store len: {:?}", config.root_store.len());
+
     let config_ref_count = Arc::new(config);
     
     //Create socket
     let bind_info = SocketAddr::from_str(bind_str).unwrap();
 	let socket = UdpSocket::bind(&bind_info).unwrap();
 
-	//let mut tls_buf = TlsBuffer{buf : Vec::new()};
-	let mut tls_buf = TlsBuffer{buf : Vec::with_capacity(1200)};
-	//let mut tls_buf = TlsBuffer{buf : vec![0;200]};
+    let dest_info = SocketAddr::from_str(dest_str).unwrap();
 
+	let mut tls_buf = TlsBuffer{buf : Vec::new()};
+	//let mut tls_buf = TlsBuffer{buf : Vec::with_capacity(1200)};
+	let mut tls_buf_out = TlsBuffer{buf : Vec::with_capacity(1200)};
+
+   // let dns_name = webpki::DNSNameRef::try_from_ascii_str("quic-rust.com").unwrap();
     //Create client
     let mut client = rustls::ClientSession::new(&config_ref_count, "quic-rust.com");
+    //let mut client = rustls::ClientSession::new(&config_ref_count, dns_name);
     
     let mut tls_stream = rustls::Stream::new(&mut client, &mut tls_buf);
 
-    tls_stream.write(b"Hi, first TLS message here.");
+	println!("stream: {:?}", tls_stream.sock);
+	//tls_stream.sess.write_tls(tls_stream.sock);
+	tls_stream.write(b"Hi, first TLS message here.");
+	//tls_stream.sess.write(b"Super secret TLS message!");
 	println!("stream: {:?}\n", tls_stream.sock);
+	stdout().write_all(&tls_stream.sock.buf);
 
-    let mut plaintext : Vec<u8> = vec![0;200];
+    //let mut plaintext : Vec<u8> = vec![0;1200];
 	//let mut plaintext : Vec<u8> = Vec::new();
-	println!("Starting plaintext read...\n");
-    tls_stream.sock.read(&mut plaintext).unwrap();
-	println!("TLS stream read complete.\n");
-    stdout().write_all(&plaintext);
-	//println!("\n\nPlaintext final: {:?}", &mut plaintext);
-    
+	//println!("\n\nStarting plaintext read...\n");
+    //tls_stream.sock.read(&mut plaintext).unwrap();
+	//println!("\nTLS stream read complete. Output:");
+    //stdout().write_all(&plaintext);
+	//println!("\n\nPlaintext final: {:?}\n\n", &mut plaintext);
+	//println!("\n\nPlaintext final: {:?}\n\n", from_utf8(&mut plaintext).unwrap());
+
+    UdpSocket::send_to(&socket, &tls_stream.sock.buf, &dest_info).expect("Couldn't send TLS message to server.\n");
+    println!("\n\nTLS message sent to server.\n");
+
+    let mut input_buf = [0; 1200];
+
+    loop {
+        //Attempt to retrieve data from socket
+        match socket.recv_from(&mut input_buf){
+            Ok(addr) => {//Convert [u8] into Bytes struct
+                let input_buf = Bytes::from(&input_buf[..]);
+
+                println!("TLS response received from server.\n");
+                stdout().write_all(&input_buf);
+
+                let read_var = tls_stream.sess.read_tls(&mut tls_stream.sock);
+                println!("\n\nread_var = {:?}\n", &read_var);
+                stdout().write_all(&tls_stream.sock.buf);
+                let proc_var = tls_stream.sess.process_new_packets();
+                println!("\n\nproc_var = {:?}\n", &proc_var);
+                stdout().write_all(&tls_stream.sock.buf);
+                &tls_buf_out.write(&tls_stream.sock.buf);
+                //println!("\nprocessed output: {:?}\n", &tls_buf_out.buf);
+                stdout().write_all(&tls_buf_out.buf);
+                println!("\n\n");
+
+                //Send ShortHeader as a bytestream
+                UdpSocket::send_to(&socket, b"response tls message here", &addr.1).expect("Couldn't TLS response to client.");
+                println!("\n\nTLS response sent to server.\n");
+
+
+
+            }
+            Err(_) => continue,
+        };
+    }
+
+	println!("\n\n");
 }
 //
 

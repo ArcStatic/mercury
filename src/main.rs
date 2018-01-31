@@ -28,7 +28,7 @@ use std::fs::File;
 //use bytes::{Bytes, BytesMut, BufMut, BigEndian};
 use bytes::{Bytes};
 
-use header::{Header, PacketType, PacketNumber, ConnectionID, TlsBuffer};
+use header::{Header, PacketType, PacketNumber, ConnectionID, TlsBuffer, QuicSocket};
 
 fn main() {
     
@@ -242,9 +242,11 @@ fn listen_tls(bind_str: &str){
     println!("Listening for TLS");
 
 	//Prepare cert and key in DER format
-    let key_file = File::open("quic-rust-new.pem");
+    //let key_file = File::open("quic-rust-new.pem");
+	let key_file = File::open("rsa/end.rsa");
     let mut key_read = BufReader::new(key_file.unwrap());
-	let cert_file = File::open("quic-rust-new.crt");
+	//let cert_file = File::open("quic-rust-new.crt");
+	let cert_file = File::open("rsa/end.fullchain");
 	let mut cert_read = BufReader::new(cert_file.unwrap());
 	let mut der_key = rustls::internal::pemfile::rsa_private_keys(&mut key_read).unwrap();
 	let der_cert = rustls::internal::pemfile::certs(&mut cert_read).unwrap();
@@ -252,7 +254,6 @@ fn listen_tls(bind_str: &str){
 	println!("{:?}\n", rustls::internal::pemfile::certs(&mut key_read));
 	println!("der_key: {:?}.\n", der_key);
 	println!("der_cert: {:?}.\n", der_cert);
-	println!("der_cert len: {:?}.\n", der_cert.len());
 	println!("Key/cert parsing done.\n");
 
     //Create and bind socket
@@ -273,41 +274,62 @@ fn listen_tls(bind_str: &str){
     //Create server
     let mut server = rustls::ServerSession::new(&config_ref_count);
 
-    let mut tls_stream = rustls::Stream::new(&mut server, &mut tls_buf);
+	let mut quic_sock = QuicSocket{sock: socket, buf : tls_buf, addr : SocketAddr::from_str("127.0.0.1:8080").unwrap()};
+
+    let mut tls_stream = rustls::Stream::new(&mut server, &mut quic_sock);
 
     //Set up a [u8] buffer for incoming messages/packets
     //Size 1200 bytes to match current QUIC specification
-    let mut input_buf = vec![0;100];
+    let mut input_buf = vec![0;500];
 
 	println!("Listening...");
+
+	let mut content = Vec::new();
+
+	loop {
+		match tls_stream.sess.read_tls(tls_stream.sock){
+			Ok(_) => {
+				tls_stream.sess.process_new_packets();
+				tls_stream.sess.read_to_end(&mut content);
+				println!("Content: {:?}\n", content);
+				break;
+			}
+			Err(_) => continue,
+		}
+
+	}
+
+	tls_stream.sess.write_all("You found a plaintext TLS message! Congrats.".as_bytes()).unwrap();
+	println!("\n\nTLS message sent to client.\n");
+
+	/*
     loop {
         //Attempt to retrieve data from socket
-        match socket.recv_from(&mut input_buf){
-            Ok(addr) => {//Convert [u8] into Bytes struct
-                let input_buf = Bytes::from(&input_buf[..]);
+        //match tls_stream.sock.sock.recv_from(&mut input_buf){
+		match tls_stream.sock.read(&mut input_buf){
+            Ok(recv_addr) => {//Convert [u8] into Bytes struct
+                let mut output_buf : [u8 ; 500] = [0;500];
 
                 println!("TLS message received from client.\n");
-                stdout().write_all(&input_buf);
+                stdout().write_all(&mut input_buf);
 
-				tls_stream.sock.write_all(&input_buf);
+				//let mut plaintext = Vec::new();
 
-                //let read_var = tls_stream.sess.read_tls(&mut tls_stream.sock);
-				let read_var = tls_stream.sess.read_tls(&mut tls_stream.sock);
-                println!("\n\nread_var = {:?}\n", &read_var);
-                stdout().write_all(&tls_stream.sock.buf);
-                let proc_var = tls_stream.sess.process_new_packets();
-                println!("\n\nproc_var = {:?}\n", &proc_var);
-                stdout().write_all(&tls_stream.sock.buf);
+				println!("\nread_tls...\n");
+				tls_stream.sess.read_tls(&mut tls_stream.sock).unwrap();
+				println!("process_new_packets...\n");
+				tls_stream.sess.process_new_packets().unwrap();
 
-                //Send ShortHeader as a bytestream
-                UdpSocket::send_to(&socket, b"response tls message here", &addr.1).expect("Couldn't TLS response to client.");
-                println!("\n\nTLS response sent to client.\n");
-				//println!("Listening...");
-				break;
+				tls_stream.sess.read_to_end(&mut tls_stream.sock.buf.buf).unwrap();
+				println!("\n\nProcessed message:\n\n");
+				stdout().write_all(&mut tls_stream.sock.buf.buf).unwrap();
+
+				tls_stream.sess.write_tls(tls_stream.sock).unwrap();
 
             }
             Err(_) => continue,
         };
     }
+	*/
 
 }

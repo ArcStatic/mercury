@@ -1,3 +1,9 @@
 *.lock
 target/debug/*
 .~lock.QUIC-collisions.csv#
+*.pem
+*.key
+*.rsa
+*.crt
+*.cert
+*.txt

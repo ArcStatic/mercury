@@ -2,10 +2,9 @@ use std::sync::{Arc, Mutex};
 use std::process;
 
 extern crate mio;
-use mio::tcp::TcpStream;
 use mio::net::UdpSocket;
 
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 use std::str;
 use std::io;
@@ -73,9 +72,10 @@ impl Read for QuicSocket {
         //match output.write(&mut self.buf) {
         //println!("\nCustom socket recv_from...\n");
         //UdpSocket::recv_from(&mut self.sock, output)?;
-        let (bytes, addr) = UdpSocket::recv_from(&mut self.sock, output)?;
+        let res = UdpSocket::recv_from(&mut self.sock, output)?;
         println!("recv_from complete\n");
-        Ok(bytes)
+        println!("received: {:?}\n", res.0);
+        Ok(res.0)
     }
 }
 
@@ -84,6 +84,7 @@ impl Write for QuicSocket {
         println!("\nCustom socket send_to...\n");
         let bytes = UdpSocket::send_to(&mut self.sock, input, &self.addr)?;
         println!("send_to complete\n");
+        println!("sent: {:?}\n", bytes);
         //Ok(input.len())
         Ok(bytes)
     }
@@ -412,22 +413,6 @@ struct Args {
     arg_hostname: String,
 }
 
-// TODO: um, well, it turns out that openssl s_client/s_server
-// that we use for testing doesn't do ipv6.  So we can't actually
-// test ipv6 and hence kill this.
-fn lookup_ipv4(host: &str, port: u16) -> SocketAddr {
-    use std::net::ToSocketAddrs;
-
-    let addrs = (host, port).to_socket_addrs().unwrap();
-    for addr in addrs {
-        if let SocketAddr::V4(_) = addr {
-            return addr;
-        }
-    }
-
-    unreachable!("Cannot lookup address");
-}
-
 /// Find a ciphersuite with the given name
 fn find_suite(name: &str) -> Option<&'static rustls::SupportedCipherSuite> {
     for suite in &rustls::ALL_CIPHERSUITES {
@@ -578,23 +563,26 @@ fn main() {
         logger.init().unwrap();
     }
 
-    //let port = args.flag_port.unwrap_or(443);
-    //let addr = lookup_ipv4(args.arg_hostname.as_str(), port);
+    //let port = args.flag_port.unwrap_or(5050);
+    //Not sure why this is stubbornly persisting with port 443 instead of 5050
+    let port: u16 = match args.flag_port {
+        Some(num) => num,
+        None => 5050
+    };
+    let addr = IpAddr::from_str("127.0.0.1").unwrap();
+    println!("port: {:?}", port);
+    println!("addr: {:?}", addr);
+    let socket = UdpSocket::bind(&SocketAddr::new(addr, port)).unwrap();
+
+    println!("socket: {:?}", socket);
 
     let config = make_config(&args);
 
     //Custom QuicSocket setup
     //Create socket
-    let bind_info = SocketAddr::from_str("127.0.0.1:8080").unwrap();
-    let socket = UdpSocket::bind(&bind_info).unwrap();
+    let tls_buf = TlsBuffer{buf : Vec::new()};
+    let quic_sock = QuicSocket{sock: socket, buf : tls_buf, addr : SocketAddr::from_str("127.0.0.1:9090").unwrap()};
 
-    //let dest_info = SocketAddr::from_str(dest_str).unwrap();
-
-    let mut tls_buf = TlsBuffer{buf : Vec::new()};
-    //let mut tls_buf = TlsBuffer{buf : Vec::with_capacity(1200)};
-    let mut quic_sock = QuicSocket{sock: socket, buf : tls_buf, addr : SocketAddr::from_str("127.0.0.1:9090").unwrap()};
-
-    //let sock = TcpStream::connect(&addr).unwrap();
     let dns_name = webpki::DNSNameRef::try_from_ascii_str(&args.arg_hostname).unwrap();
     let mut tlsclient = TlsClient::new(quic_sock, dns_name, config);
 

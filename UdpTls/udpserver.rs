@@ -1,10 +1,6 @@
 use std::sync::Arc;
 
 extern crate mio;
-use mio::tcp::{TcpListener, TcpStream, Shutdown};
-use mio::Event;
-use mio::unix::EventedFd;
-use std::os::unix::io::AsRawFd;
 use mio::net::UdpSocket;
 use std::net::SocketAddr;
 
@@ -13,10 +9,8 @@ extern crate log;
 
 use std::fs;
 use std::io;
-use std::io::Error;
 use std::io::Result;
 use std::str::FromStr;
-use std::net;
 use std::io::{Write, Read, BufReader};
 use std::collections::HashMap;
 
@@ -74,9 +68,9 @@ pub struct QuicSocket {
 
 impl Read for QuicSocket {
     fn read (&mut self, mut output : &mut [u8]) -> Result<usize> {
-        let (bytes, addr) = UdpSocket::recv_from(&mut self.sock, output)?;
+        let res = UdpSocket::recv_from(&mut self.sock, output)?;
         println!("recv_from complete\n");
-        Ok(bytes)
+        Ok(res.0)
     }
 }
 
@@ -88,7 +82,6 @@ impl Write for QuicSocket {
         Ok(bytes)
     }
 
-    //TODO: correct this
     fn flush(&mut self) -> Result<()>{
         println!("\nCustom flush...\n");
         &mut self.buf.flush()?;
@@ -115,7 +108,6 @@ enum ServerMode {
 struct TlsServer {
     server: QuicSocket,
     connections: HashMap<SocketAddr, Connection>,
-    next_id: usize,
     tls_config: Arc<rustls::ServerConfig>,
     mode: ServerMode,
 }
@@ -125,49 +117,70 @@ impl TlsServer {
         TlsServer {
             server: server,
             connections: HashMap::new(),
-            next_id: 2,
             tls_config: cfg,
             mode: mode,
         }
     }
 
-    fn accept(&mut self, poll: &mut mio::Poll) -> bool {
-        let mut accept_buf : [u8;1000] = [0;1000];
+    fn accept(&mut self, client_addr: SocketAddr) -> bool {
 
         let tls_session = rustls::ServerSession::new(&self.tls_config);
         let mode = self.mode.clone();
 
         println!("Accepting new 'connection'\n");
-        println!("{:?}\n", self.server.addr);
+        println!("{:?}\n", client_addr);
 
-        let q_sock = QuicSocket{sock: self.server.sock.try_clone().unwrap(), buf: TlsBuffer{buf : Vec::new()}, addr: self.server.addr.clone()};
+        let q_sock = QuicSocket{sock: self.server.sock.try_clone().unwrap(), buf: TlsBuffer{buf : Vec::new()}, addr: client_addr};
 
-        self.connections.insert(self.server.addr.clone(), Connection::new(q_sock, mode, tls_session));
+        self.connections.insert(client_addr, Connection::new(q_sock, mode, tls_session));
 
         println!("Accept complete.\n");
         return true;
 
     }
 
-    fn conn_event(&mut self, poll: &mut mio::Poll, event: &mio::Event) {
-        let token = event.token();
+    //fn conn_event(&mut self, poll: &mut mio::Poll, event: &mio::Event) {
+    //fn conn_event(&mut self, poll: &mut mio::Poll, event: &mio::Event, client_addr: SocketAddr, buffer: &mut [u8], msg_len: usize) {
+    fn conn_event_read(&mut self, poll: &mut mio::Poll, event: &mio::Event, client_addr: SocketAddr, buffer: &mut [u8], msg_len: usize) {
 
         println!("Checking for key...\n");
-        if self.connections.contains_key(&self.server.addr) {
+        //if self.connections.contains_key(&self.server.addr) {
+        if self.connections.contains_key(&client_addr) {
             self.connections
-                .get_mut(&self.server.addr)
+                //.get_mut(&self.server.addr)
+                .get_mut(&client_addr)
                 .unwrap()
-                .ready(poll, event);
+                .ready(poll, event, buffer, msg_len);
 
         }
 
-        println!("Closed? {:?}\n", self.connections[&self.server.addr].is_closed());
+        println!("Closed? {:?}\n", self.connections[&client_addr].is_closed());
         //Checking closing label with is_closed() causes connection to be removed too early
-        if (self.connections[&self.server.addr].closed) && self.connections[&self.server.addr].sent_http_response {
-            self.connections.remove(&self.server.addr);
+        if (self.connections[&client_addr].closed) && self.connections[&client_addr].sent_http_response {
+            self.connections.remove(&client_addr);
             println!("Connection removed from hashmap.\n");
         }
     }
+
+    fn conn_event_write(&mut self, poll: &mut mio::Poll, event: &mio::Event, client_addr: SocketAddr) {
+
+        println!("Checking for key...\n");
+        if self.connections.contains_key(&client_addr) {
+            self.connections
+                .get_mut(&client_addr)
+                .unwrap()
+                .ready_write(poll, event);
+
+        }
+
+        println!("Closed? {:?}\n", self.connections[&client_addr].is_closed());
+        //Checking closing label with is_closed() causes connection to be removed too early
+        if (self.connections[&client_addr].closed) && self.connections[&client_addr].sent_http_response {
+            self.connections.remove(&client_addr);
+            println!("Connection removed from hashmap.\n");
+        }
+    }
+
 }
 
 /// This is a connection which has been accepted by the server,
@@ -187,24 +200,8 @@ struct Connection {
     sent_http_response: bool,
 }
 
-/// This used to be conveniently exposed by mio: map EWOULDBLOCK
-/// errors to something less-errory.
-fn try_read(r: io::Result<usize>) -> io::Result<Option<usize>> {
-    match r {
-        Ok(len) => {println!("try_read ... \n"); Ok(Some(len))},
-        Err(e) => {
-            if e.kind() == io::ErrorKind::WouldBlock {
-                Ok(None)
-            } else {
-                Err(e)
-            }
-        }
-    }
-}
-
 impl Connection {
     fn new(socket: QuicSocket,
-           //token: mio::Token,
            mode: ServerMode,
            tls_session: rustls::ServerSession)
            -> Connection {
@@ -219,16 +216,21 @@ impl Connection {
         }
     }
 
+
     /// We're a connection, and we have something to do.
-    fn ready(&mut self, poll: &mut mio::Poll, ev: &mio::Event) {
+    fn ready(&mut self, poll: &mut mio::Poll, ev: &mio::Event, buffer: &mut [u8], msg_len: usize) {
         // If we're readable: read some TLS.  Then
         // see if that yielded new plaintext.  Then
         // see if the backend is readable too.
         println!("Handshaking? - {:?}\n", self.tls_session.is_handshaking());
         if ev.readiness().is_readable() {
             println!("Readable! \n");
-            self.do_tls_read();
-            self.try_plain_read(poll);
+            //self.do_tls_read();
+            let cli = self.do_tls_read(buffer, msg_len);
+            println!("Cli: {:?}\n", cli);
+            //self.try_plain_read(poll);
+            let cli_plain = self.try_plain_read(poll);
+            println!("Cli_plain: {:?}\n", cli_plain);
         }
 
         if ev.readiness().is_writable() {
@@ -251,7 +253,42 @@ impl Connection {
                     println!("Register performed on poll.\n");
                 },
                 Err(_) => {
-                    self.reregister(poll);
+                    self.reregister(poll).unwrap();
+                    println!("Reregister performed on poll.\n");
+                }
+            }
+        }
+
+    }
+
+    /// We're a connection, and we have something to do.
+    fn ready_write(&mut self, poll: &mut mio::Poll, ev: &mio::Event) {
+        // If we're readable: read some TLS.  Then
+        // see if that yielded new plaintext.  Then
+        // see if the backend is readable too.
+        println!("Handshaking? - {:?}\n", self.tls_session.is_handshaking());
+
+        if ev.readiness().is_writable() {
+            println!("Writeable! \n");
+            self.do_tls_write();
+        }
+
+
+        if self.closing && !self.tls_session.wants_write() {
+            //if self.closing {
+            println!("Connection closing...\n");
+            //Prepare to remove connection from hashmap
+            self.closed = true;
+
+
+        } else {
+            //register succeeds for write events, reregister succeeds for read events
+            match self.register(poll) {
+                Ok(_) => {
+                    println!("Register performed on poll.\n");
+                },
+                Err(_) => {
+                    self.reregister(poll).unwrap();
                     println!("Reregister performed on poll.\n");
                 }
             }
@@ -260,20 +297,28 @@ impl Connection {
     }
 
 
-    fn do_tls_read(&mut self) {
+    fn do_tls_read(&mut self, buffer: &mut [u8], msg_len: usize) {
+    //fn do_tls_read(&mut self) {
         // Read some TLS data.
         println!("read_tls (session -> socket) ... \n");
-        let rc = self.tls_session.read_tls(&mut self.socket);
+        //Read from buffer in listener, data no longer in socket
+        //let rc = self.tls_session.read_tls(&mut self.socket);
+        //let mut tls_buf = TlsBuffer { buf: buffer.to_vec() };
+        let mut tls_buf = TlsBuffer { buf: buffer[0..msg_len].to_vec() };
+        //let rc = self.tls_session.read_tls(&mut buffer);
+        let rc = self.tls_session.read_tls(&mut tls_buf);
         println!("result: {:?}\n", rc);
         if rc.is_err() {
             let err = rc.unwrap_err();
 
             if let io::ErrorKind::WouldBlock = err.kind() {
-                return;
+                //return;
+                return
             }
 
             error!("read error {:?}", err);
-            return;
+            //return;
+            return
         }
 
         // Process newly-received TLS messages.
@@ -282,7 +327,8 @@ impl Connection {
         println!("result: {:?}\n", processed);
         if processed.is_err() {
             error!("cannot process packet: {:?}", processed);
-            return;
+            return
+            //return processed;
         }
     }
 
@@ -332,9 +378,8 @@ impl Connection {
             println!("HTTP response sent, sending close_notify...\n");
             self.tls_session.send_close_notify();
 
-            self.reregister(poll);
+            self.reregister(poll).unwrap();
 
-            //TODO: implement removal of connections from hashmap here
 
         }
     }
@@ -368,13 +413,6 @@ impl Connection {
                               self.token,
                               self.event_set(),
                               mio::PollOpt::level() | mio::PollOpt::oneshot())?;
-        Ok(())
-    }
-
-    //Shouldn't need to call this at any point - read is always needed to listen for new clients, write is only ever registered as oneshot event
-    fn deregister(&self, poll: &mut mio::Poll) -> Result<()>{
-
-        poll.deregister(&self.socket.sock)?;
         Ok(())
     }
 
@@ -616,11 +654,8 @@ fn main() {
     let bind_info = SocketAddr::from_str("127.0.0.1:9090").unwrap();
     let socket = UdpSocket::bind(&bind_info).unwrap();
 
-    //let dest_info = SocketAddr::from_str(dest_str).unwrap();
-
-    let mut tls_buf = TlsBuffer{buf : Vec::new()};
-    //let mut tls_buf = TlsBuffer{buf : Vec::with_capacity(1200)};
-    let mut quic_sock = QuicSocket{sock: socket, buf : tls_buf, addr : SocketAddr::from_str("127.0.0.1:8080").unwrap()};
+    let tls_buf = TlsBuffer{buf : Vec::new()};
+    let quic_sock = QuicSocket{sock: socket, buf : tls_buf, addr : SocketAddr::from_str("127.0.0.1:8080").unwrap()};
 
     let mut tlsserv = TlsServer::new(quic_sock, mode, config);
 
@@ -628,14 +663,13 @@ fn main() {
     poll.register(&tlsserv.server.sock,
                   LISTENER,
                   mio::Ready::readable(),
-                  //mio::Ready::readable() | mio::Ready::writable(),
-                  //Use edge instead of level?
-                  //Edge doesn't seem to work - could be WouldBlock not being returned?
-                  //mio::PollOpt::edge())
-                  mio::PollOpt::level())
+                  mio::PollOpt::edge())
+                  //mio::PollOpt::level())
         .unwrap();
 
-    let mut output = vec![100];
+
+    //Placeholder for recent_client, will be changed as soon as new client accepted
+    let mut recent_client = SocketAddr::from_str("127.0.0.1:4444").unwrap();
 
     let mut events = mio::Events::with_capacity(256);
     loop {
@@ -645,22 +679,35 @@ fn main() {
         for event in events.iter() {
 
             match event.token() {
+                //Single socket in poll, shouldn't be any other matches
                 LISTENER => {
-                    //If the recipient address is not in the hashmap containing established connections, accept and add it to hashmap
-                    if !(tlsserv.connections.contains_key(&tlsserv.server.addr)) && (event.readiness().is_readable()) {
-                        println!("Events queue: {:?}", events);
-                        println!("LISTENER\nEvent: {:?}\n", event);
-                        let cli = tlsserv.server.sock.recv_from(&mut output).unwrap;
-                        println!("Cli: {:?}\n", cli);
-                        tlsserv.accept(&mut poll);
+                    //Readable event could be a new client initiating contact
+                    //recv_from needs to be called here to check if client is already held in connections hashtable
+                    //No other way to retrieve client SocketAddr - unfortunate side-effect of this is needing two separate conn_event functions which take different args
+                    if event.readiness().is_readable() {
+                        let mut array : [u8; 1500] = [0;1500];
+                        let client_info = tlsserv.server.sock.recv_from(&mut array).unwrap();
+                        //If client's address is not in the hashmap containing established connections, call accept to add it
+                        if !(tlsserv.connections.contains_key(&client_info.1)) {
+                            tlsserv.accept(client_info.1);
+                        };
 
-                    //Perform operations on already established connections
-                    } else if tlsserv.connections.contains_key(&tlsserv.server.addr) {
-                        println!("Events queue: {:?}", events);
-                        println!("LISTENER\nEvent: {:?}\n", event);
-                        //break;
-                        event_count += 1; println!("------------------\nEvent (listener) #{:?}\n", event_count); println!("Event: {:?}\n", event); tlsserv.conn_event(&mut poll, &event)
-                    }
+                        //Process readable event as normal
+                        event_count += 1;
+                        println!("------------------\nEvent (listener) #{:?}\n", event_count);
+                        println!("Event: {:?}\n", event);
+                        tlsserv.conn_event_read(&mut poll, &event, client_info.1, &mut array, client_info.0);
+
+                        recent_client = client_info.1;
+
+                    //If it's a writable event, client address info is already held in connections hashtable
+                    } else {
+                        event_count += 1;
+                        println!("------------------\nEvent (listener) #{:?}\n", event_count);
+                        println!("Event: {:?}\n", event);
+                        //Process writeable event
+                        tlsserv.conn_event_write(&mut poll, &event, recent_client)
+                    };
 
                 }
                 _ => println!("If you're seeing this something has gone very wrong...\n")

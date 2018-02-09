@@ -13,6 +13,7 @@ use std::io::Result;
 use std::str::FromStr;
 use std::io::{Write, Read, BufReader};
 use std::collections::HashMap;
+use std::{thread, time};
 
 #[macro_use]
 extern crate serde_derive;
@@ -139,15 +140,12 @@ impl TlsServer {
 
     }
 
-    //fn conn_event(&mut self, poll: &mut mio::Poll, event: &mio::Event) {
-    //fn conn_event(&mut self, poll: &mut mio::Poll, event: &mio::Event, client_addr: SocketAddr, buffer: &mut [u8], msg_len: usize) {
+
     fn conn_event_read(&mut self, poll: &mut mio::Poll, event: &mio::Event, client_addr: SocketAddr, buffer: &mut [u8], msg_len: usize) {
 
         println!("Checking for key...\n");
-        //if self.connections.contains_key(&self.server.addr) {
         if self.connections.contains_key(&client_addr) {
             self.connections
-                //.get_mut(&self.server.addr)
                 .get_mut(&client_addr)
                 .unwrap()
                 .ready(poll, event, buffer, msg_len);
@@ -401,7 +399,8 @@ impl Connection {
         poll.register(&self.socket.sock,
                       self.token,
                       self.event_set(),
-                      mio::PollOpt::level() | mio::PollOpt::oneshot())?;
+                      //mio::PollOpt::level() | mio::PollOpt::oneshot())?;
+                      mio::PollOpt::oneshot())?;
         Ok(())
     }
 
@@ -412,7 +411,8 @@ impl Connection {
         poll.reregister(&self.socket.sock,
                               self.token,
                               self.event_set(),
-                              mio::PollOpt::level() | mio::PollOpt::oneshot())?;
+                              mio::PollOpt::oneshot())?;
+                              //mio::PollOpt::level() | mio::PollOpt::oneshot())?;
         Ok(())
     }
 
@@ -676,11 +676,15 @@ fn main() {
         poll.poll(&mut events, None)
             .unwrap();
 
+        let sleep_time = time::Duration::from_millis(1000);
+        thread::sleep(sleep_time);
+
         for event in events.iter() {
 
             match event.token() {
                 //Single socket in poll, shouldn't be any other matches
                 LISTENER => {
+                    println!("Event received:");
                     //Readable event could be a new client initiating contact
                     //recv_from needs to be called here to check if client is already held in connections hashtable
                     //No other way to retrieve client SocketAddr - unfortunate side-effect of this is needing two separate conn_event functions which take different args

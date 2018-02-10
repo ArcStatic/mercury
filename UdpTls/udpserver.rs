@@ -14,6 +14,7 @@ use std::str::FromStr;
 use std::io::{Write, Read, BufReader};
 use std::collections::HashMap;
 use std::{thread, time};
+use std::fmt;
 
 #[macro_use]
 extern crate serde_derive;
@@ -32,10 +33,25 @@ const LISTENER: mio::Token = mio::Token(0);
 
 //Custom structs:
 
-#[derive(Debug)]
+pub struct TlsBuffer{
+    pub buf : [u8;10000],
+    pub offset : usize
+}
+
+
+impl fmt::Debug for TlsBuffer{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        //write!(f, "{:?}", &self.buf[0..10000])
+        write!(f, "{:?}", &self.buf[0..self.offset])
+    }
+}
+
+
+/*
 pub struct TlsBuffer{
     pub buf : Vec<u8>
 }
+
 
 impl Read for TlsBuffer {
     fn read (&mut self, mut output : &mut [u8]) -> Result<usize> {
@@ -58,6 +74,7 @@ impl Write for TlsBuffer {
         Ok(())
     }
 }
+*/
 
 #[derive(Debug)]
 pub struct QuicSocket {
@@ -83,11 +100,20 @@ impl Write for QuicSocket {
         Ok(bytes)
     }
 
+
+    fn flush(&mut self) -> Result<()>{
+        println!("\nCustom flush...\n");
+        &mut self.buf.buf.as_mut().flush()?;
+        Ok(())
+    }
+
+    /*
     fn flush(&mut self) -> Result<()>{
         println!("\nCustom flush...\n");
         &mut self.buf.flush()?;
         Ok(())
     }
+    */
 }
 
 //End of custom structs
@@ -131,7 +157,8 @@ impl TlsServer {
         println!("Accepting new 'connection'\n");
         println!("{:?}\n", client_addr);
 
-        let q_sock = QuicSocket{sock: self.server.sock.try_clone().unwrap(), buf: TlsBuffer{buf : Vec::new()}, addr: client_addr};
+        //let q_sock = QuicSocket{sock: self.server.sock.try_clone().unwrap(), buf: TlsBuffer{buf : Vec::new()}, addr: client_addr};
+        let q_sock = QuicSocket{sock: self.server.sock.try_clone().unwrap(), buf: TlsBuffer{buf : [0;10000], offset: 0}, addr: client_addr};
 
         self.connections.insert(client_addr, Connection::new(q_sock, mode, tls_session));
 
@@ -154,7 +181,9 @@ impl TlsServer {
 
         println!("Closed? {:?}\n", self.connections[&client_addr].is_closed());
         //Checking closing label with is_closed() causes connection to be removed too early
+        println!("Check remove client_addr - conn_event_write");
         if (self.connections[&client_addr].closed) && self.connections[&client_addr].sent_http_response {
+            println!("Remove client_addr - conn_event_read");
             self.connections.remove(&client_addr);
             println!("Connection removed from hashmap.\n");
         }
@@ -173,7 +202,10 @@ impl TlsServer {
 
         println!("Closed? {:?}\n", self.connections[&client_addr].is_closed());
         //Checking closing label with is_closed() causes connection to be removed too early
+        println!("Check remove client_addr - conn_event_write");
+        //println!("Connections: {:?}", self.connections[&client_addr]);
         if (self.connections[&client_addr].closed) && self.connections[&client_addr].sent_http_response {
+            println!("Remove client_addr - conn_event_write");
             self.connections.remove(&client_addr);
             println!("Connection removed from hashmap.\n");
         }
@@ -236,12 +268,15 @@ impl Connection {
             self.do_tls_write();
         }
 
+        println!("Wants write? {:?}", self.tls_session.wants_write());
 
         if self.closing && !self.tls_session.wants_write() {
-        //if self.closing {
+            //if self.closing {
             println!("Connection closing...\n");
             //Prepare to remove connection from hashmap
             self.closed = true;
+
+        } else if self.sent_http_response {
 
 
         } else {
@@ -272,11 +307,19 @@ impl Connection {
         }
 
 
+        println!("Wants write (ready_write)? {:?}", self.tls_session.wants_write());
+
         if self.closing && !self.tls_session.wants_write() {
             //if self.closing {
             println!("Connection closing...\n");
             //Prepare to remove connection from hashmap
             self.closed = true;
+
+        //Send complete buffered TLS message to client
+        } else if !self.tls_session.wants_write(){
+            //TODO: refactor this garbage
+            self.socket.sock.send_to(&self.socket.buf.buf[0..self.socket.buf.offset], &self.socket.addr).unwrap();
+            println!("TLS message sent.");
 
 
         } else {
@@ -296,26 +339,19 @@ impl Connection {
 
 
     fn do_tls_read(&mut self, buffer: &mut [u8], msg_len: usize) {
-    //fn do_tls_read(&mut self) {
         // Read some TLS data.
         println!("read_tls (session -> socket) ... \n");
-        //Read from buffer in listener, data no longer in socket
-        //let rc = self.tls_session.read_tls(&mut self.socket);
-        //let mut tls_buf = TlsBuffer { buf: buffer.to_vec() };
-        let mut tls_buf = TlsBuffer { buf: buffer[0..msg_len].to_vec() };
-        //let rc = self.tls_session.read_tls(&mut buffer);
-        let rc = self.tls_session.read_tls(&mut tls_buf);
+        //Read from buffer passed from listener, data no longer in socket
+        let rc = self.tls_session.read_tls(&mut &buffer[0..msg_len]);
         println!("result: {:?}\n", rc);
         if rc.is_err() {
             let err = rc.unwrap_err();
 
             if let io::ErrorKind::WouldBlock = err.kind() {
-                //return;
                 return
             }
 
             error!("read error {:?}", err);
-            //return;
             return
         }
 
@@ -326,7 +362,6 @@ impl Connection {
         if processed.is_err() {
             error!("cannot process packet: {:?}", processed);
             return
-            //return processed;
         }
     }
 
@@ -366,15 +401,21 @@ impl Connection {
     fn send_http_response_once(&mut self, poll: &mut mio::Poll) {
         let response = b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nHello from Viridian! o/  \r\n";
         if !self.sent_http_response {
+
             self.tls_session
                 .write_all(response)
                 .unwrap();
+
+
             println!("write_all (session -> http response) ... \n");
-            //println!("sent: {:?}\n", response);
+            //Send response
+            self.tls_session.write_tls(&mut self.socket);
             self.sent_http_response = true;
             self.closing = true;
+            //self.socket.sock.send_to(response, &self.socket.addr).unwrap();
             println!("HTTP response sent, sending close_notify...\n");
             self.tls_session.send_close_notify();
+            self.tls_session.write_tls(&mut self.socket);
 
             self.reregister(poll).unwrap();
 
@@ -383,11 +424,22 @@ impl Connection {
     }
 
     fn do_tls_write(&mut self) {
-        let rc = self.tls_session.write_tls(&mut self.socket);
+        //let rc = self.tls_session.write_tls(&mut self.socket);
+        //let rc = self.tls_session.write_tls(&mut &mut self.socket.buf.buf[self.socket.buf.offset..10000]);
         println!("write_tls (session -> socket) ... \n");
-        println!("sent: {:?}\n", rc);
+        //let rc = self.tls_session.write_tls(&mut self.socket.buf.buf.as_mut());
+        //let slice = self.socket.buf.buf.as_mut();
+        let rc = self.tls_session.write_tls(&mut self.socket.buf.buf[self.socket.buf.offset..10000].as_mut());
+        //println!("sent: {:?}\n", rc);
+        println!("written: {:?}\n", rc);
         if rc.is_err() {
             error!("write failed {:?}", rc);
+            return;
+        } else {
+            //self.socket.buf.offset = rc.unwrap();
+            self.socket.buf.offset += rc.unwrap();
+            println!("Buf: {:?}", self.socket.buf);
+            println!("Offset: {:?} - {:?}", self.socket.buf.offset, self.socket.buf.buf[self.socket.buf.offset-1]);
             return;
         }
     }
@@ -654,7 +706,8 @@ fn main() {
     let bind_info = SocketAddr::from_str("127.0.0.1:9090").unwrap();
     let socket = UdpSocket::bind(&bind_info).unwrap();
 
-    let tls_buf = TlsBuffer{buf : Vec::new()};
+    //let tls_buf = TlsBuffer{buf : Vec::new()};
+    let tls_buf = TlsBuffer{buf : [0;10000], offset : 0};
     let quic_sock = QuicSocket{sock: socket, buf : tls_buf, addr : SocketAddr::from_str("127.0.0.1:8080").unwrap()};
 
     let mut tlsserv = TlsServer::new(quic_sock, mode, config);
@@ -689,8 +742,11 @@ fn main() {
                     //recv_from needs to be called here to check if client is already held in connections hashtable
                     //No other way to retrieve client SocketAddr - unfortunate side-effect of this is needing two separate conn_event functions which take different args
                     if event.readiness().is_readable() {
+                        println!("Readable event:");
                         let mut array : [u8; 1500] = [0;1500];
+                        //Error being thrown here
                         let client_info = tlsserv.server.sock.recv_from(&mut array).unwrap();
+                        println!("Recv_from complete");
                         //If client's address is not in the hashmap containing established connections, call accept to add it
                         if !(tlsserv.connections.contains_key(&client_info.1)) {
                             tlsserv.accept(client_info.1);

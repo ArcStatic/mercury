@@ -1,5 +1,5 @@
 [package]
-name = "quic-rust"
+name = "mercury"
 version = "0.1.0"
 authors = ["ArcStatic <eband42@gmail.com>"]
 

@@ -25,6 +25,7 @@ extern crate webpki;
 extern crate webpki_roots;
 extern crate ct_logs;
 
+
 use rustls::Session;
 
 const CLIENT: mio::Token = mio::Token(0);
@@ -522,7 +523,8 @@ fn make_config(args: &Args) -> Arc<rustls::ClientConfig> {
     }
 
     if args.flag_no_sni {
-        config.enable_sni = false;
+        //config.enable_sni = false;
+        config.enable_tickets = false;
     }
 
     let persist = Arc::new(PersistCache::new(&args.flag_cache));

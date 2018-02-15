@@ -1,4 +1,4 @@
-# quic-rust
+# Mercury
 
 This is an undergraduate dissertation project aiming to implement as much of the QUIC protocol as humanely possible before March 2018.
 
@@ -8,20 +8,17 @@ This is an undergraduate dissertation project aiming to implement as much of the
 * Client can send custom messages as ShortHeader or LongHeader packets
 * Client and server can perform a complete connection process if client runs using the 'start' command variant 
 * Encoding and decoding obeys AVTCORE WG guidance to avoid multiplexing conflicts (outlined in quic-transport v8)
+* Modified rustls to use UDP and mimic required QUIC behaviour
 
 ### Next steps:
 * Integrate cryptographic handshake in connection process (using TLS 1.3)
 * Create tests using QuickCheck
 
 ### Usage:
-Create a server listening on `addr:port`:
+Run the following from the base directory:
 
-`cargo run listen [addr]:[port]`
+Server:
+`cargo run --example udpserver -- --certs test-ca/rsa/end.fullchain --key test-ca/rsa/end.rsa http`
 
-Create a client which sets up a connection with a server at `dest-addr:dest-port`:
-
-`cargo run start [addr]:[port] [dest-addr]:[dest-port]`
-
-Create a client which sends a ShortHeader or LongHeader message (`[packet_type]`) with a custom payload to `dest-addr:dest-port`:
-
-`cargo run send packet_type payload [addr]:[port] [dest-addr]:[dest-port]`
+Client:
+`cargo run --example udpclient -- --cafile test-ca/rsa/ca.cert localhost --http -p [port]`

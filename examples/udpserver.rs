@@ -370,14 +370,13 @@ impl Connection {
 
             println!("write_all (session -> http response) ... \n");
             //Send response
-            //self.tls_session.write_tls(&mut socket);
-            self.tls_session.write_tls(&mut socket);
+            self.tls_session.write_tls(&mut socket).unwrap();
             //socket.sock.send_to(&self.tls_session, &self.addr);
             self.sent_http_response = true;
             self.closing = true;
             println!("HTTP response sent, sending close_notify...\n");
             self.tls_session.send_close_notify();
-            self.tls_session.write_tls(&mut socket);
+            self.tls_session.write_tls(&mut socket).unwrap();
             //socket.sock.send_to(&self.tls_session, &self.addr);
 
             self.reregister(poll, socket).unwrap();
@@ -688,8 +687,8 @@ fn main() {
         poll.poll(&mut events, None)
             .unwrap();
 
-        let sleep_time = time::Duration::from_millis(1000);
-        thread::sleep(sleep_time);
+        //let sleep_time = time::Duration::from_millis(1000);
+        //thread::sleep(sleep_time);
 
         for event in events.iter() {
 

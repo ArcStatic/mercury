@@ -1,14 +1,40 @@
 [package]
 name = "quic-rust"
 version = "0.1.0"
-authors = ["eb"]
+authors = ["ArcStatic <eband42@gmail.com>"]
 
 [dependencies]
 
+ring = { version = "0.13.0-alpha", features = ["rsa_signing"] }
 mio = "0.6"
 bytes = "0.4"
 quickcheck = "0.4"
-rustls = "0.11.0"
-webpki-roots = "0.13.0"
-ring = { version = "0.12.1", features = ["rsa_signing"] }
-webpki = { git = "https://github.com/briansmith/webpki" }
+rustls = "0.12.0"
+webpki = "0.18.0-alpha"
+webpki-roots = "0.14.0"
+serde = "1.0"
+serde_derive = "1.0"
+docopt = "0.8"
+ct-logs = "0.3"
+env_logger = "0.4.2"
+log = { version = "0.3.6", optional = true }
+
+[features]
+default = ["logging"]
+logging = ["log"]
+dangerous_configuration = []
+
+[dev-dependencies]
+log = "0.4"
+
+[[example]]
+name = "udpclient"
+path = "examples/udpclient.rs"
+
+[[example]]
+name = "udpserver"
+path = "examples/udpserver.rs"
+
+[[example]]
+name = "udpservertoken"
+path = "examples/udpservertoken.rs"

@@ -49,7 +49,6 @@ impl Read for TlsBuffer {
 
 impl Write for TlsBuffer {
 	fn write(&mut self, input: &[u8]) -> Result<usize, Error>{
-		println!("\nCustom write...\n");
 		&mut self.buf.write(input)?;
 		//println!("tls_buf: {:?}", &mut self.buf);
 		Ok(self.buf.len())
@@ -57,7 +56,6 @@ impl Write for TlsBuffer {
 
     //TODO: correct this
 	fn flush(&mut self) -> Result<(), Error>{
-		println!("\nCustom flush...\n");
 		&mut self.buf.flush()?;
 		Ok(())
 	}
@@ -102,15 +100,12 @@ impl Read for QuicSocket {
 
 impl Write for QuicSocket {
     fn write(&mut self, input : &[u8]) -> Result<usize, Error>{
-        println!("\nCustom socket send_to...\n");
         UdpSocket::send_to(&mut self.sock, input, &self.addr)?;
-        println!("send_to complete\n");
         Ok(input.len())
     }
 
     //TODO: correct this
     fn flush(&mut self) -> Result<(), Error>{
-        println!("\nCustom flush...\n");
         &mut self.buf.flush()?;
         Ok(())
     }

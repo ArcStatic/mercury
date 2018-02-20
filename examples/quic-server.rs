@@ -11,13 +11,10 @@ use bytes::{Bytes, BytesMut, Buf, BufMut, IntoBuf, BigEndian};
 extern crate log;
 
 use std::fs;
-use std::io;
 use std::io::Result;
 use std::str::FromStr;
 use std::io::{Write, Read, BufReader};
 use std::collections::HashMap;
-use std::fmt;
-use std::env;
 
 #[macro_use]
 extern crate serde_derive;
@@ -66,11 +63,13 @@ impl TlsServer {
     }
 }
 
+#[derive(Debug, PartialOrd, PartialEq)]
 //Track which stage a connection is in
 enum ConnectionStatus {
     Initial,
     Handshake,
-    DataSharing
+    DataSharing,
+    Closing
 }
 
 /// This is a connection which has been accepted by the server,
@@ -85,8 +84,6 @@ struct Connection {
     status: ConnectionStatus,
     //In process of closing
     closing: bool,
-    //Finished closing, should be removed from list of connections
-    closed: bool,
     tls_session: rustls::ServerSession,
 }
 
@@ -100,70 +97,68 @@ impl Connection {
             token: LISTENER,
             status: ConnectionStatus::Initial,
             closing: false,
-            closed: false,
             tls_session: tls_session,
         }
     }
 
+    fn process_event(&mut self, poll: &mut mio::Poll, ev: &mio::Event, buffer: &mut [u8], msg_len: usize, socket: &mut QuicSocket) {
+        match self.status {
 
-    /// We're a connection, and we have something to do.
-    fn ready(&mut self, poll: &mut mio::Poll, ev: &mio::Event, buffer: &mut [u8], msg_len: usize, socket: &mut QuicSocket) {
-        // If we're readable: read some TLS.  Then
-        // see if that yielded new plaintext.  Then
-        // see if the backend is readable too.
-        println!("Handshaking? - {:?}\n", self.tls_session.is_handshaking());
-        if ev.readiness().is_readable() {
-            println!("Readable! \n");
-            let client = self.do_tls_read(buffer, msg_len);
-            println!("Client: {:?}\n", client);
-            let client_plain = self.try_plain_read(poll, socket);
-            println!("Client_plain: {:?}\n", client_plain);
-        }
+            ConnectionStatus::Initial => {
+                println!("Initial:\n");
+                let client = self.do_tls_read(buffer, msg_len);
+                println!("Client: {:?}\n", client);
+                let client_plain = self.try_plain_read(socket);
+                println!("Client_plain: {:?}\n", client_plain);
+                self.status = ConnectionStatus::Handshake;
+            }
 
-        if ev.readiness().is_writable() {
-            println!("Writeable! \n");
-            self.do_tls_write();
-        }
+            ConnectionStatus::Handshake => {
+                //ie. a write event is currently being processed, but no longer wants write after do_tls_write()
+                //Complete TLS handshake message will be sent
+                println!("Writing handshake message...\n");
+                self.do_tls_write();
 
-        println!("Wants write? {:?}", self.tls_session.wants_write());
-
-        if self.closing && !self.tls_session.wants_write() {
-            //if self.closing {
-            println!("Connection closing...\n");
-            //Prepare to remove connection from hashmap
-            self.closed = true;
-
-        //ie. a write event is currently being processed, but no longer wants write after do_tls_write()
-        //Complete TLS handshake message will be sent
-        } else if ev.readiness().is_writable() && !self.tls_session.wants_write(){
-                //TODO: refactor this garbage
-                socket.sock.send_to(&self.buf.buf[0..self.buf.offset], &self.addr).unwrap();
-                println!("TLS message sent.");
-
-                self.reregister(poll, socket).unwrap();
-
-        } else {
-            //register succeeds for write events, reregister succeeds for read events
-            match self.register(poll, socket) {
-                Ok(_) => {
-                    println!("Register performed on poll.\n");
-                },
-                Err(_) => {
-                    self.reregister(poll, socket).unwrap();
-                    println!("Reregister performed on poll.\n");
+                if ev.readiness().is_writable() && !self.tls_session.wants_write(){
+                    //TODO: refactor this garbage
+                    socket.sock.send_to(&self.buf.buf[0..self.buf.offset], &self.addr).unwrap();
+                    println!("TLS message sent.");
+                    self.status = ConnectionStatus::DataSharing;
                 }
             }
+
+            ConnectionStatus::DataSharing => {
+                println!("Sending response...\n");
+                let client = self.do_tls_read(buffer, msg_len);
+                println!("Client: {:?}\n", client);
+                let client_plain = self.try_plain_read(socket);
+                println!("Client_plain: {:?}\n", client_plain);
+            }
+
+            ConnectionStatus::Closing => {
+                println!("Connection closing...\n");
+            }
+
         }
 
+        //Register or reregister events will poll
+        //register succeeds for write events, reregister succeeds for read events
+        match self.register(poll, socket) {
+            Ok(_) => {
+                //println!("Register performed on poll.\n");
+            },
+            Err(_) => {
+                self.reregister(poll, socket).unwrap();
+                //println!("Reregister performed on poll.\n");
+            }
+        }
     }
 
 
     fn do_tls_read(&mut self, buffer: &mut [u8], msg_len: usize) {
         // Read some TLS data.
-        println!("read_tls (session -> buffer) ... \n");
         //Read from buffer passed from listener, data no longer in socket
         let rc = self.tls_session.read_tls(&mut &buffer[0..msg_len]);
-        println!("result: {:?}\n", rc);
         if rc.is_err() {
             let err = rc.unwrap_err();
             error!("read error {:?}", err);
@@ -172,21 +167,17 @@ impl Connection {
 
         // Process newly-received TLS messages.
         let processed = self.tls_session.process_new_packets();
-        println!("process_new_packets (session) ... \n");
-        println!("result: {:?}\n", processed);
         if processed.is_err() {
             error!("cannot process packet: {:?}", processed);
             return
         }
     }
 
-    fn try_plain_read(&mut self, poll: &mut mio::Poll, socket: &mut QuicSocket) {
+    fn try_plain_read(&mut self, socket: &mut QuicSocket) {
         // Read and process all available plaintext.
         let mut buf = Vec::new();
 
         let rc = self.tls_session.read_to_end(&mut buf);
-        println!("read_to_end/plain_read (session -> buf) ... \n");
-        println!("result: {:?}\n", rc);
         if rc.is_err() {
             error!("plaintext read failed: {:?}", rc);
             return;
@@ -194,20 +185,18 @@ impl Connection {
 
         if !buf.is_empty() {
             println!("plaintext read {:?}\n\n", buf);
-            self.send_response(poll, socket);
+            self.send_response(socket);
         }
         println!("End of try_plain_read\n");
     }
 
-    fn send_response(&mut self, poll: &mut mio::Poll, mut socket: &mut QuicSocket) {
+    fn send_response(&mut self, mut socket: &mut QuicSocket) {
         let response = b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nHello from Viridian!  \r\n";
 
             self.tls_session
                 .write_all(response)
                 .unwrap();
 
-
-            println!("write_all (header -> http response) ... \n");
             //Send response
             self.tls_session.write_tls(&mut socket).unwrap();
             //socket.sock.send_to(&self.tls_session, &self.addr);
@@ -216,15 +205,12 @@ impl Connection {
             self.tls_session.send_close_notify();
             self.tls_session.write_tls(&mut socket).unwrap();
 
-            self.reregister(poll, socket).unwrap();
+            self.status = ConnectionStatus::Closing;
 
     }
 
     fn do_tls_write(&mut self) {
-        println!("write_tls (session -> socket) ... \n");
         let rc = self.tls_session.write_tls(&mut self.buf.buf[self.buf.offset..10000].as_mut());
-        //println!("sent: {:?}\n", rc);
-        println!("written: {:?}\n", rc);
         if rc.is_err() {
             error!("write failed {:?}", rc);
             return;
@@ -240,7 +226,6 @@ impl Connection {
     //register works when socket wants write
     //Anything readable is already registered in initial loop in main, writable needs registering as new event
     fn register(&self, poll: &mut mio::Poll, socket: &QuicSocket) -> Result<()>{
-
 
         poll.register(&socket.sock,
                       self.token,
@@ -274,10 +259,6 @@ impl Connection {
         } else {
             mio::Ready::readable()
         }
-    }
-
-    fn is_closed(&self) -> bool {
-        self.closing
     }
 
 }
@@ -478,13 +459,12 @@ fn server_setup() -> TlsServer {
     let socket = UdpSocket::bind(&bind_info).unwrap();
 
     let tls_buf = TlsBuffer { buf: vec![0; 10000] };
-    //let tls_buf = ConnectionBuffer { buf: [0; 10000], offset: 0 };
     //127.0.0.1:4444 is a placeholder for recent_client, will be changed as soon as new client accepted
     let quic_sock = QuicSocket { sock: socket, buf: tls_buf, addr: SocketAddr::from_str("127.0.0.1:4444").unwrap() };
 
     let config = make_config(&args);
 
-    let mut tlsserv = TlsServer::new(quic_sock, config);
+    let tlsserv = TlsServer::new(quic_sock, config);
 
     tlsserv
 }
@@ -519,7 +499,6 @@ fn main(){
                 println!("Readable event:");
                 //Error being thrown here for multiple clients
                 let client_info = tlsserv.server.sock.recv_from(&mut recv_buf).unwrap();
-                println!("Recv_from complete");
                 //If client's address is not in the hashmap containing established connections, call accept to add it
                 if !(tlsserv.connections.contains_key(&client_info.1)) {
                     tlsserv.accept(client_info.1);
@@ -530,7 +509,7 @@ fn main(){
                 println!("------------------\nEvent #{:?}\n", event_count);
                 println!("Event: {:?}\n", event);
                 let mut client = tlsserv.connections.get_mut(&client_info.1).unwrap();
-                client.ready(&mut poll, &event, &mut recv_buf, client_info.0, &mut tlsserv.server);
+                client.process_event(&mut poll, &event, &mut recv_buf, client_info.0, &mut tlsserv.server);
 
                 //Change addr on QuicSocket to recent client to allow application data to be sent
                 tlsserv.server.addr = client_info.1;
@@ -543,9 +522,17 @@ fn main(){
                 let mut client = tlsserv.connections.get_mut(&tlsserv.server.addr).unwrap();
                 //Process writeable event
                 //Checks for most recently processed client in hashtable - this will need refactored in future
-                //tlsserv.connections[&tlsserv.server.addr].ready(&mut poll, &event, &mut recv_buf, 0, &mut tlsserv.server);
-                client.ready(&mut poll, &event, &mut recv_buf, 0, &mut tlsserv.server);
+                client.process_event(&mut poll, &event, &mut recv_buf, 0, &mut tlsserv.server);
+
             };
+
+            //Remove any connection which is marked as closing
+            if tlsserv.connections.get_mut(&tlsserv.server.addr).unwrap().status == ConnectionStatus::Closing {
+                //if tlsserv.connections.get_mut(&tlsserv.server.addr).unwrap().status == ConnectionStatus::Closing {
+                tlsserv.connections.remove(&tlsserv.server.addr);
+                println!("Connection removed.\n");
+            }
+
         }
     }
 

@@ -17,8 +17,13 @@ This is an undergraduate dissertation project aiming to implement as much of the
 ### Usage:
 Run the following from the base directory:
 
-Server:
+udpserver:
 `cargo run --example udpserver -- --certs test-ca/rsa/end.fullchain --key test-ca/rsa/end.rsa http`
 
-Client:
+udpclient:
 `cargo run --example udpclient -- --cafile test-ca/rsa/ca.cert localhost --http -p [port]`
+
+quic-server:
+`cargo run --example quic-server -- --certs test-ca/rsa/end.fullchain --key test-ca/rsa/end.rsa http`
+
+quic-client: not yet implemented

@@ -9,10 +9,11 @@ extern crate webpki;
 extern crate webpki_roots;
 
 use bytes::{Bytes, BytesMut, Buf, BufMut, IntoBuf, BigEndian};
+
 use header::rustls::{Session, ProtocolVersion};
 use header::rustls::internal::msgs::handshake::{ClientHelloPayload, ClientExtension, ConvertProtocolNameList, ProtocolNameList, SessionID, Random};
 use header::rustls::internal::msgs::enums::{Compression, CipherSuite};
-use rustls::internal::msgs::codec::Codec;
+
 use header::webpki::DNSNameRef;
 
 use mio::net::UdpSocket;
@@ -31,6 +32,7 @@ use std::fs::File;
 use std::result::Result;
 use std::convert::AsRef;
 use std::string::String;
+use std::fmt;
 
 #[derive(Debug)]
 pub struct TlsBuffer{
@@ -61,41 +63,23 @@ impl Write for TlsBuffer {
 	}
 }
 
-
-/*
-pub struct QuicSocket {
-    pub sock : UdpSocket,
-    pub buf : TlsBuffer,
+pub struct ConnectionBuffer{
+	pub buf : [u8;10000],
+	pub offset : usize
 }
 
-impl Read for QuicSocket {
-    fn read (&mut self, mut output : &mut [u8]) -> Result<usize, Error> {
-        //match output.write(&mut self.buf) {
-        &mut self.sock.recv_from(output)?;
-        Ok(output.len())
-    }
+
+impl fmt::Debug for ConnectionBuffer{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{:?}", &self.buf[0..self.offset])
+	}
 }
 
-impl Write for QuicSocket {
-    fn write(&mut self, dest_info : &[u8]) -> Result<usize, Error>{
-        println!("\nCustom socket send_to...\n");
-        let dest_info = SocketAddr::from_str(from_utf8(dest_info).unwrap());
-        UdpSocket::send_to(&mut self.sock, &mut self.buf.buf, &dest_info.unwrap())?;
-        Ok(self.buf.buf.len())
-    }
-
-    //TODO: correct this
-    fn flush(&mut self) -> Result<(), Error>{
-        println!("\nCustom flush...\n");
-        &mut self.buf.flush()?;
-        Ok(())
-    }
-}
-*/
 
 pub struct QuicSocket {
     pub sock : UdpSocket,
     pub buf : TlsBuffer,
+    //pub buf : ConnectionBuffer,
     pub addr : SocketAddr,
 }
 
@@ -131,6 +115,7 @@ impl Write for QuicSocket {
         Ok(())
     }
 }
+
 
 
 #[derive(Debug)]
@@ -633,134 +618,6 @@ impl Header{
 	//--------------------------------------
     
 }
-
-// rustls
-pub fn tls_start_client(bind_str : &str, dest_str : &str){
-    println!("Starting TLS stuff");
-    
-    //Create TLS config
-    let mut config = rustls::ClientConfig::new();
-
-	//Add self-signed cert for testing
-	//let key_file = File::open("quic-rust.pem");
-	let key_file = File::open("rsa/ca.cert");
-	let mut key_read = BufReader::new(key_file.unwrap());
-	println!("cert store len: {:?}", key_read);
-	println!("{:?}", config.root_store.len());
-	let cert_var = config.root_store.add_pem_file(&mut key_read);
-	println!("cert_var: {:?}", cert_var);
-	println!("cert store len: {:?}", config.root_store.len());
-
-	//Add Mozilla set of root certificates to config
-	config.root_store.add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
-	println!("cert store len: {:?}", config.root_store.len());
-
-    let config_ref_count = Arc::new(config);
-
-    //let dns_name = webpki::DNSNameRef::try_from_ascii_str("quic-rust.com").unwrap();
-    //Create client
-    let mut client = rustls::ClientSession::new(&config_ref_count, "quic-rust.com");
-    //let mut client = rustls::ClientSession::new(&config_ref_count, dns_name);
-    
-    //Create socket
-    let bind_info = SocketAddr::from_str(bind_str).unwrap();
-	let socket = UdpSocket::bind(&bind_info).unwrap();
-
-    let dest_info = SocketAddr::from_str(dest_str).unwrap();
-
-	let mut tls_buf = TlsBuffer{buf : Vec::new()};
-	//let mut tls_buf = TlsBuffer{buf : Vec::with_capacity(1200)};
-	let mut quic_sock = QuicSocket{sock: socket, buf : tls_buf, addr : SocketAddr::from_str("127.0.0.1:9090").unwrap()};
-    
-    let mut tls_stream = rustls::Stream::new(&mut client, &mut quic_sock);
-
-	//println!("buf: {:?}", tls_stream.sock.buf);
-
-	//println!("stream: {:?}\n", tls_stream.sock.buf);
-	//stdout().write_all(&tls_stream.sock.buf.buf);
-
-
-    //tls_stream.write(dest_str.as_bytes());
-    println!("Writing initial TLS message...");
-    //FIXME: error being thrown here
-    //QuicSocket send_to completes
-    //QuicSocket recv_from fails
-    //tls_stream.sess.write_tls("You found a plaintext TLS message! Congrats.".as_bytes()).unwrap();
-	//tls_stream.sess.write_tls(tls_stream.sock);
-	tls_stream.sess.write_all("You found a plaintext TLS message! Congrats.".as_bytes()).unwrap();
-    println!("\n\nTLS message sent to server.\n");
-
-    let mut content = Vec::new();
-
-	loop {
-		match tls_stream.sess.read_tls(tls_stream.sock){
-			Ok(_) => {
-				tls_stream.sess.process_new_packets();
-				tls_stream.sess.read_to_end(&mut content);
-				println!("Content: {:?}\n", content);
-				break;
-			}
-			Err(_) => continue,
-		}
-
-	}
-
-
-	/*
-    loop {
-        //Attempt to retrieve data from socket
-        match tls_stream.sock.read(&mut input_buf){
-            Ok(addr) => {//Convert [u8] into Bytes struct
-                println!("Ok(addr)\n");
-                let mut output_buf = &mut input_buf[..];
-
-                let mut plaintext = Vec::new();
-                //tls_stream.read(&mut input_buf);
-
-                println!("TLS response received from server:\n\n");
-                stdout().write_all(&mut output_buf);
-
-                tls_stream.read(&mut plaintext).unwrap();
-                stdout().write_all(&mut plaintext).unwrap();
-
-            }
-            Err(_) => continue,
-        };
-    }
-    */
-
-	println!("\n\n");
-}
-//
-
-//
-pub fn tls_start_client_test(bind_str : &str, dest_info : &str){
-    println!("Starting TLS stuff");
-    
-    //Create socket
-    let bind_info = SocketAddr::from_str(bind_str).unwrap();
-	let socket = UdpSocket::bind(&bind_info).unwrap();
-
-	let mut tls_buf = TlsBuffer{buf : Vec::new()};
-	tls_buf.buf.write(b"Hi, tls message here.");
-	println!("{:?}", tls_buf.buf);
-	let mut recv_buf : Vec<u8> = vec![0;100];
-	//let mut recv_buf : Vec<u8> = Vec::with_capacity(100);
-	//write call on this has some odd behaviour:
-	//write within read trait behaviour puts stuff at the start of vec
-	//...but write in the line below puts stuff at the end of vec
-	//recv_buf.write(b"init");
-	println!("{:?}", recv_buf);
-	tls_buf.read(&mut recv_buf);
-	println!("{:?}\n", recv_buf);
-
-	tls_buf.buf.clear();
-	println!("{:?}", tls_buf.buf);
-
-	tls_buf.write(b"New tls buf message");
-	println!("{:?}", tls_buf.buf);
-}
-//
 
 
 

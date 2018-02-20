@@ -36,5 +36,13 @@ name = "udpserver"
 path = "examples/udpserver.rs"
 
 [[example]]
+name = "quic-client"
+path = "examples/quic-client.rs"
+
+[[example]]
+name = "quic-server"
+path = "examples/quic-server.rs"
+
+[[example]]
 name = "udpservertoken"
 path = "examples/udpservertoken.rs"

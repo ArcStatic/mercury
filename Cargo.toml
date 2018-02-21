@@ -27,13 +27,6 @@ dangerous_configuration = []
 [dev-dependencies]
 log = "0.4"
 
-[[example]]
-name = "udpclient"
-path = "examples/udpclient.rs"
-
-[[example]]
-name = "udpserver"
-path = "examples/udpserver.rs"
 
 [[example]]
 name = "quic-client"
@@ -43,6 +36,3 @@ path = "examples/quic-client.rs"
 name = "quic-server"
 path = "examples/quic-server.rs"
 
-[[example]]
-name = "udpservertoken"
-path = "examples/udpservertoken.rs"

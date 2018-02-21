@@ -141,7 +141,7 @@ impl Connection {
 
         }
 
-        //Register or reregister events will poll
+        //Register or reregister events with poll
         //register succeeds for write events, reregister succeeds for read events
         match self.register(poll, socket) {
             Ok(_) => {
@@ -514,7 +514,7 @@ fn main(){
                 //Change addr on QuicSocket to recent client to allow application data to be sent
                 tlsserv.server.addr = client_info.1;
 
-                //If it's a writable event, client address info is already held in connections hashtable
+            // If it's a writable event, client address info is already held in connections hashtable
             } else {
                 event_count += 1;
                 println!("------------------\nEvent #{:?}\n", event_count);
@@ -528,7 +528,6 @@ fn main(){
 
             //Remove any connection which is marked as closing
             if tlsserv.connections.get_mut(&tlsserv.server.addr).unwrap().status == ConnectionStatus::Closing {
-                //if tlsserv.connections.get_mut(&tlsserv.server.addr).unwrap().status == ConnectionStatus::Closing {
                 tlsserv.connections.remove(&tlsserv.server.addr);
                 println!("Connection removed.\n");
             }

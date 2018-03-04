@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `Header` enum in crate `mercury`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Header">
+
+    <title>mercury::header::Header - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc enum">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Enum Header</p><div class="block items"><ul><li><a href="#variants">Variants</a></li><li><a href="#methods">Methods</a></li><li><a href="#implementations">Trait Implementations</a></li></ul></div><p class='location'><a href='../index.html'>mercury</a>::<wbr><a href='index.html'>header</a></p><script>window.sidebarCurrent = {name: 'Header', ty: 'enum', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Enum <a href='../index.html'>mercury</a>::<wbr><a href='index.html'>header</a>::<wbr><a class="enum" href=''>Header</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../../src/mercury/header.rs.html#155-175' title='goto source code'>[src]</a></span></h1>
+<pre class='rust enum'>pub enum Header {
+    LongHeader {
+        packet_type: <a class="enum" href="../../mercury/header/enum.PacketTypeLong.html" title="enum mercury::header::PacketTypeLong">PacketTypeLong</a>,
+        connection_id: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u64.html">u64</a>,
+        packet_number: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u32.html">u32</a>,
+        version: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u32.html">u32</a>,
+        payload: <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a>&gt;,
+    },
+    ShortHeader {
+        key_phase: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a>,
+        connection_id: <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="../../mercury/header/struct.ConnectionID.html" title="struct mercury::header::ConnectionID">ConnectionID</a>&gt;,
+        packet_number: <a class="enum" href="../../mercury/header/enum.PacketNumber.html" title="enum mercury::header::PacketNumber">PacketNumber</a>,
+        payload: <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a>&gt;,
+    },
+}</pre><div class='docblock'><p>Format of messages which will be sent between client and server</p>
+</div><h2 id='variants' class='variants'>Variants</h2>
+<span id='variant.LongHeader' class='variant'><span id='LongHeader.v' class='invisible'><code>LongHeader</code></span></span><span class='docblock autohide sub-variant' id='variant.LongHeader.fields'><h3 class='fields'>Fields of <code>LongHeader</code></h3>
+
+                           <table><tr><td id='variant.LongHeader.field.packet_type'><span id='LongHeader.v.packet_type.v' class='invisible'><code>packet_type:&nbsp;<a class="enum" href="../../mercury/header/enum.PacketTypeLong.html" title="enum mercury::header::PacketTypeLong">PacketTypeLong</a></code></span></td><td></td></tr><tr><td id='variant.LongHeader.field.connection_id'><span id='LongHeader.v.connection_id.v' class='invisible'><code>connection_id:&nbsp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u64.html">u64</a></code></span></td><td></td></tr><tr><td id='variant.LongHeader.field.packet_number'><span id='LongHeader.v.packet_number.v' class='invisible'><code>packet_number:&nbsp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u32.html">u32</a></code></span></td><td></td></tr><tr><td id='variant.LongHeader.field.version'><span id='LongHeader.v.version.v' class='invisible'><code>version:&nbsp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u32.html">u32</a></code></span></td><td></td></tr><tr><td id='variant.LongHeader.field.payload'><span id='LongHeader.v.payload.v' class='invisible'><code>payload:&nbsp;<a class="struct" href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a>&gt;</code></span></td><td></td></tr></table></span><span id='variant.ShortHeader' class='variant'><span id='ShortHeader.v' class='invisible'><code>ShortHeader</code></span></span><span class='docblock autohide sub-variant' id='variant.ShortHeader.fields'><h3 class='fields'>Fields of <code>ShortHeader</code></h3>
+
+                           <table><tr><td id='variant.ShortHeader.field.key_phase'><span id='ShortHeader.v.key_phase.v' class='invisible'><code>key_phase:&nbsp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a></code></span></td><td></td></tr><tr><td id='variant.ShortHeader.field.connection_id'><span id='ShortHeader.v.connection_id.v' class='invisible'><code>connection_id:&nbsp;<a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="../../mercury/header/struct.ConnectionID.html" title="struct mercury::header::ConnectionID">ConnectionID</a>&gt;</code></span></td><td></td></tr><tr><td id='variant.ShortHeader.field.packet_number'><span id='ShortHeader.v.packet_number.v' class='invisible'><code>packet_number:&nbsp;<a class="enum" href="../../mercury/header/enum.PacketNumber.html" title="enum mercury::header::PacketNumber">PacketNumber</a></code></span></td><td></td></tr><tr><td id='variant.ShortHeader.field.payload'><span id='ShortHeader.v.payload.v' class='invisible'><code>payload:&nbsp;<a class="struct" href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a>&gt;</code></span></td><td></td></tr></table></span><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class="enum" href="../../mercury/header/enum.Header.html" title="enum mercury::header::Header">Header</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/mercury/header.rs.html#179-408' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.encode' class="method"><span id='encode.v' class='invisible'><code>fn <a href='#method.encode' class='fnname'>encode</a>(self) -&gt; <a class="struct" href="../../bytes/bytes/struct.Bytes.html" title="struct bytes::bytes::Bytes">Bytes</a></code></span></h4>
+<div class='docblock'><p>Return a representation of Header as Bytes</p>
+</div><h4 id='method.decode' class="method"><span id='decode.v' class='invisible'><code>fn <a href='#method.decode' class='fnname'>decode</a>(self, input: <a class="struct" href="../../bytes/bytes/struct.Bytes.html" title="struct bytes::bytes::Bytes">Bytes</a>) -&gt; <a class="enum" href="../../mercury/header/enum.Header.html" title="enum mercury::header::Header">Header</a></code></span></h4>
+<div class='docblock'><p>Reconstruct a Header from Bytes</p>
+</div><h4 id='method.is_new_connection' class="method"><span id='is_new_connection.v' class='invisible'><code>fn <a href='#method.is_new_connection' class='fnname'>is_new_connection</a>(&amp;self) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code></span></h4>
+<h4 id='method.is_compatible_version' class="method"><span id='is_compatible_version.v' class='invisible'><code>fn <a href='#method.is_compatible_version' class='fnname'>is_compatible_version</a>(&amp;self) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code></span></h4>
+</div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a class="enum" href="../../mercury/header/enum.Header.html" title="enum mercury::header::Header">Header</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/mercury/header.rs.html#153' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.fmt' class="method"><span id='fmt.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, __arg_0: &amp;mut <a class="struct" href="https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></code></span></h4>
+<div class='docblock'><p>Formats the value using the given formatter.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html" title="trait core::cmp::PartialEq">PartialEq</a> for <a class="enum" href="../../mercury/header/enum.Header.html" title="enum mercury::header::Header">Header</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../src/mercury/header.rs.html#153' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.eq' class="method"><span id='eq.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq' class='fnname'>eq</a>(&amp;self, __arg_0: &amp;<a class="enum" href="../../mercury/header/enum.Header.html" title="enum mercury::header::Header">Header</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code></span></h4>
+<div class='docblock'><p>This method tests for <code>self</code> and <code>other</code> values to be equal, and is used by <code>==</code>. <a href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq">Read more</a></p>
+</div><h4 id='method.ne' class="method"><span id='ne.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#method.ne' class='fnname'>ne</a>(&amp;self, __arg_0: &amp;<a class="enum" href="../../mercury/header/enum.Header.html" title="enum mercury::header::Header">Header</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code></span></h4>
+<div class='docblock'><p>This method tests for <code>!=</code>.</p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../";
+        window.currentCrate = "mercury";
+    </script>
+    <script src="../../main.js"></script>
+    <script defer src="../../search-index.js"></script>
+</body>
+</html>

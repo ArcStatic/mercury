@@ -1,5 +1,5 @@
 *.lock
-target/debug/*
+target/*
 .~lock.QUIC-collisions.csv#
 *.pem
 *.key

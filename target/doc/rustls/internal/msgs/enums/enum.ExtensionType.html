@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `ExtensionType` enum in crate `rustls`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, ExtensionType">
+
+    <title>rustls::internal::msgs::enums::ExtensionType - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../../../../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../../../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc enum">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Enum ExtensionType</p><div class="block items"><ul><li><a href="#variants">Variants</a></li><li><a href="#methods">Methods</a></li><li><a href="#implementations">Trait Implementations</a></li></ul></div><p class='location'><a href='../../../index.html'>rustls</a>::<wbr><a href='../../index.html'>internal</a>::<wbr><a href='../index.html'>msgs</a>::<wbr><a href='index.html'>enums</a></p><script>window.sidebarCurrent = {name: 'ExtensionType', ty: 'enum', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Enum <a href='../../../index.html'>rustls</a>::<wbr><a href='../../index.html'>internal</a>::<wbr><a href='../index.html'>msgs</a>::<wbr><a href='index.html'>enums</a>::<wbr><a class="enum" href=''>ExtensionType</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../../../../src/rustls/msgs/macros.rs.html#46-49' title='goto source code'>[src]</a></span></h1>
+<pre class='rust enum'>pub enum ExtensionType {
+    ServerName,
+    MaxFragmentLength,
+    ClientCertificateUrl,
+    TrustedCAKeys,
+    TruncatedHMAC,
+    StatusRequest,
+    UserMapping,
+    ClientAuthz,
+    ServerAuthz,
+    CertificateType,
+    EllipticCurves,
+    ECPointFormats,
+    SRP,
+    SignatureAlgorithms,
+    UseSRTP,
+    Heartbeat,
+    ALProtocolNegotiation,
+    SCT,
+    Padding,
+    ExtendedMasterSecret,
+    SessionTicket,
+    KeyShare,
+    PreSharedKey,
+    EarlyData,
+    SupportedVersions,
+    Cookie,
+    PSKKeyExchangeModes,
+    TicketEarlyDataInfo,
+    CertificateAuthorities,
+    OIDFilters,
+    NextProtocolNegotiation,
+    ChannelId,
+    RenegotiationInfo,
+    Unknown(<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u16.html">u16</a>),
+}</pre><h2 id='variants' class='variants'>Variants</h2>
+<span id='variant.ServerName' class='variant'><span id='ServerName.v' class='invisible'><code>ServerName</code></span></span><span id='variant.MaxFragmentLength' class='variant'><span id='MaxFragmentLength.v' class='invisible'><code>MaxFragmentLength</code></span></span><span id='variant.ClientCertificateUrl' class='variant'><span id='ClientCertificateUrl.v' class='invisible'><code>ClientCertificateUrl</code></span></span><span id='variant.TrustedCAKeys' class='variant'><span id='TrustedCAKeys.v' class='invisible'><code>TrustedCAKeys</code></span></span><span id='variant.TruncatedHMAC' class='variant'><span id='TruncatedHMAC.v' class='invisible'><code>TruncatedHMAC</code></span></span><span id='variant.StatusRequest' class='variant'><span id='StatusRequest.v' class='invisible'><code>StatusRequest</code></span></span><span id='variant.UserMapping' class='variant'><span id='UserMapping.v' class='invisible'><code>UserMapping</code></span></span><span id='variant.ClientAuthz' class='variant'><span id='ClientAuthz.v' class='invisible'><code>ClientAuthz</code></span></span><span id='variant.ServerAuthz' class='variant'><span id='ServerAuthz.v' class='invisible'><code>ServerAuthz</code></span></span><span id='variant.CertificateType' class='variant'><span id='CertificateType.v' class='invisible'><code>CertificateType</code></span></span><span id='variant.EllipticCurves' class='variant'><span id='EllipticCurves.v' class='invisible'><code>EllipticCurves</code></span></span><span id='variant.ECPointFormats' class='variant'><span id='ECPointFormats.v' class='invisible'><code>ECPointFormats</code></span></span><span id='variant.SRP' class='variant'><span id='SRP.v' class='invisible'><code>SRP</code></span></span><span id='variant.SignatureAlgorithms' class='variant'><span id='SignatureAlgorithms.v' class='invisible'><code>SignatureAlgorithms</code></span></span><span id='variant.UseSRTP' class='variant'><span id='UseSRTP.v' class='invisible'><code>UseSRTP</code></span></span><span id='variant.Heartbeat' class='variant'><span id='Heartbeat.v' class='invisible'><code>Heartbeat</code></span></span><span id='variant.ALProtocolNegotiation' class='variant'><span id='ALProtocolNegotiation.v' class='invisible'><code>ALProtocolNegotiation</code></span></span><span id='variant.SCT' class='variant'><span id='SCT.v' class='invisible'><code>SCT</code></span></span><span id='variant.Padding' class='variant'><span id='Padding.v' class='invisible'><code>Padding</code></span></span><span id='variant.ExtendedMasterSecret' class='variant'><span id='ExtendedMasterSecret.v' class='invisible'><code>ExtendedMasterSecret</code></span></span><span id='variant.SessionTicket' class='variant'><span id='SessionTicket.v' class='invisible'><code>SessionTicket</code></span></span><span id='variant.KeyShare' class='variant'><span id='KeyShare.v' class='invisible'><code>KeyShare</code></span></span><span id='variant.PreSharedKey' class='variant'><span id='PreSharedKey.v' class='invisible'><code>PreSharedKey</code></span></span><span id='variant.EarlyData' class='variant'><span id='EarlyData.v' class='invisible'><code>EarlyData</code></span></span><span id='variant.SupportedVersions' class='variant'><span id='SupportedVersions.v' class='invisible'><code>SupportedVersions</code></span></span><span id='variant.Cookie' class='variant'><span id='Cookie.v' class='invisible'><code>Cookie</code></span></span><span id='variant.PSKKeyExchangeModes' class='variant'><span id='PSKKeyExchangeModes.v' class='invisible'><code>PSKKeyExchangeModes</code></span></span><span id='variant.TicketEarlyDataInfo' class='variant'><span id='TicketEarlyDataInfo.v' class='invisible'><code>TicketEarlyDataInfo</code></span></span><span id='variant.CertificateAuthorities' class='variant'><span id='CertificateAuthorities.v' class='invisible'><code>CertificateAuthorities</code></span></span><span id='variant.OIDFilters' class='variant'><span id='OIDFilters.v' class='invisible'><code>OIDFilters</code></span></span><span id='variant.NextProtocolNegotiation' class='variant'><span id='NextProtocolNegotiation.v' class='invisible'><code>NextProtocolNegotiation</code></span></span><span id='variant.ChannelId' class='variant'><span id='ChannelId.v' class='invisible'><code>ChannelId</code></span></span><span id='variant.RenegotiationInfo' class='variant'><span id='RenegotiationInfo.v' class='invisible'><code>RenegotiationInfo</code></span></span><span id='variant.Unknown' class='variant'><span id='Unknown.v' class='invisible'><code>Unknown(<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u16.html">u16</a>)</code></span></span><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class="enum" href="../../../../rustls/internal/msgs/enums/enum.ExtensionType.html" title="enum rustls::internal::msgs::enums::ExtensionType">ExtensionType</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../../../src/rustls/msgs/macros.rs.html#50-58' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.get_u16' class="method"><span id='get_u16.v' class='invisible'><code>fn <a href='#method.get_u16' class='fnname'>get_u16</a>(&amp;self) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u16.html">u16</a></code></span></h4>
+</div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a class="enum" href="../../../../rustls/internal/msgs/enums/enum.ExtensionType.html" title="enum rustls::internal::msgs::enums::ExtensionType">ExtensionType</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../../../src/rustls/msgs/macros.rs.html#45' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.fmt' class="method"><span id='fmt.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, __arg_0: &amp;mut <a class="struct" href="https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></code></span></h4>
+<div class='docblock'><p>Formats the value using the given formatter.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html" title="trait core::cmp::PartialEq">PartialEq</a> for <a class="enum" href="../../../../rustls/internal/msgs/enums/enum.ExtensionType.html" title="enum rustls::internal::msgs::enums::ExtensionType">ExtensionType</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../../../src/rustls/msgs/macros.rs.html#45' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.eq' class="method"><span id='eq.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq' class='fnname'>eq</a>(&amp;self, __arg_0: &amp;<a class="enum" href="../../../../rustls/internal/msgs/enums/enum.ExtensionType.html" title="enum rustls::internal::msgs::enums::ExtensionType">ExtensionType</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code></span></h4>
+<div class='docblock'><p>This method tests for <code>self</code> and <code>other</code> values to be equal, and is used by <code>==</code>. <a href="https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#tymethod.eq">Read more</a></p>
+</div><h4 id='method.ne' class="method"><span id='ne.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html#method.ne' class='fnname'>ne</a>(&amp;self, __arg_0: &amp;<a class="enum" href="../../../../rustls/internal/msgs/enums/enum.ExtensionType.html" title="enum rustls::internal::msgs::enums::ExtensionType">ExtensionType</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></code></span></h4>
+<div class='docblock'><p>This method tests for <code>!=</code>.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/cmp/trait.Eq.html" title="trait core::cmp::Eq">Eq</a> for <a class="enum" href="../../../../rustls/internal/msgs/enums/enum.ExtensionType.html" title="enum rustls::internal::msgs::enums::ExtensionType">ExtensionType</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../../../src/rustls/msgs/macros.rs.html#45' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> for <a class="enum" href="../../../../rustls/internal/msgs/enums/enum.ExtensionType.html" title="enum rustls::internal::msgs::enums::ExtensionType">ExtensionType</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../../../src/rustls/msgs/macros.rs.html#45' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.clone' class="method"><span id='clone.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone' class='fnname'>clone</a>(&amp;self) -&gt; <a class="enum" href="../../../../rustls/internal/msgs/enums/enum.ExtensionType.html" title="enum rustls::internal::msgs::enums::ExtensionType">ExtensionType</a></code></span></h4>
+<div class='docblock'><p>Returns a copy of the value. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#tymethod.clone">Read more</a></p>
+</div><h4 id='method.clone_from' class="method"><span id='clone_from.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from' class='fnname'>clone_from</a>(&amp;mut self, source: &amp;Self)</code><div class='since' title='Stable since Rust version 1.0.0'>1.0.0</div></span></h4>
+<div class='docblock'><p>Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html#method.clone_from">Read more</a></p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html" title="trait core::marker::Copy">Copy</a> for <a class="enum" href="../../../../rustls/internal/msgs/enums/enum.ExtensionType.html" title="enum rustls::internal::msgs::enums::ExtensionType">ExtensionType</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../../../src/rustls/msgs/macros.rs.html#45' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'></div><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="../../../../rustls/internal/msgs/codec/trait.Codec.html" title="trait rustls::internal::msgs::codec::Codec">Codec</a> for <a class="enum" href="../../../../rustls/internal/msgs/enums/enum.ExtensionType.html" title="enum rustls::internal::msgs::enums::ExtensionType">ExtensionType</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../../../../src/rustls/msgs/macros.rs.html#59-71' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.encode' class="method"><span id='encode.v' class='invisible'><code>fn <a href='../../../../rustls/internal/msgs/codec/trait.Codec.html#tymethod.encode' class='fnname'>encode</a>(&amp;self, bytes: &amp;mut <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a>&gt;)</code></span></h4>
+<div class='docblock'><p>Encode yourself by appending onto <code>bytes</code>.</p>
+</div><h4 id='method.read' class="method"><span id='read.v' class='invisible'><code>fn <a href='../../../../rustls/internal/msgs/codec/trait.Codec.html#tymethod.read' class='fnname'>read</a>(r: &amp;mut <a class="struct" href="../../../../rustls/internal/msgs/codec/struct.Reader.html" title="struct rustls::internal::msgs::codec::Reader">Reader</a>) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;Self&gt;</code></span></h4>
+<div class='docblock'><p>Decode yourself by fiddling with the <code>Reader</code>. Return Some if it worked, None if not. <a href="../../../../rustls/internal/msgs/codec/trait.Codec.html#tymethod.read">Read more</a></p>
+</div><h4 id='method.get_encoding' class="method"><span id='get_encoding.v' class='invisible'><code>fn <a href='../../../../rustls/internal/msgs/codec/trait.Codec.html#method.get_encoding' class='fnname'>get_encoding</a>(&amp;self) -&gt; <a class="struct" href="https://doc.rust-lang.org/nightly/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a>&gt;</code></span></h4>
+<div class='docblock'><p>Convenience function to get the results of <code>encode()</code>.</p>
+</div><h4 id='method.read_bytes' class="method"><span id='read_bytes.v' class='invisible'><code>fn <a href='../../../../rustls/internal/msgs/codec/trait.Codec.html#method.read_bytes' class='fnname'>read_bytes</a>(bytes: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.slice.html">&amp;[</a><a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a><a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.slice.html">]</a>) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;Self&gt;</code></span></h4>
+<div class='docblock'><p>Read one of these from the front of <code>bytes</code> and return it. <a href="../../../../rustls/internal/msgs/codec/trait.Codec.html#method.read_bytes">Read more</a></p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../../../";
+        window.currentCrate = "rustls";
+    </script>
+    <script src="../../../../main.js"></script>
+    <script defer src="../../../../search-index.js"></script>
+</body>
+</html>

@@ -1,11 +1,9 @@
 # Mercury
 
-This is an undergraduate dissertation project aiming to implement as much of the QUIC protocol as humanely possible before March 2018.
+This is an undergraduate dissertation project aiming to implement as much of the QUIC protocol as humanely possible before March 2018. The current implementation is compliant with quic-transport draft 07, but will be upgraded to 09 over the next few months.
 
 ### Current progress:
 * Rust compiles!
-* Server listens for incoming packets on a constant loop
-* Client can send custom messages as ShortHeader or LongHeader packets
 * Client and server can perform a complete handshake process using the commands given
 * Encoding and decoding obeys AVTCORE WG guidance to avoid multiplexing conflicts (outlined in quic-transport v8)
 * Modified rustls to use UDP and mimic required QUIC behaviour

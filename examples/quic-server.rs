@@ -28,7 +28,7 @@ use rustls::{RootCertStore, Session, NoClientAuth, AllowAnyAuthenticatedClient,
              AllowAnyAnonymousOrAuthenticatedClient};
 
 extern crate mercury;
-use mercury::header::{Header, PacketType, PacketNumber, ConnectionID, ConnectionBuffer, QuicSocket, TlsBuffer};
+use mercury::header::{Header, PacketTypeLong, PacketTypeShort, PacketNumber, ConnectionID, ConnectionBuffer, QuicSocket, TlsBuffer};
 
 // Token for our listening socket.
 const LISTENER: mio::Token = mio::Token(0);
@@ -82,8 +82,6 @@ struct Connection {
     buf : ConnectionBuffer,
     token: mio::Token,
     status: ConnectionStatus,
-    //In process of closing
-    closing: bool,
     tls_session: rustls::ServerSession,
 }
 
@@ -96,7 +94,6 @@ impl Connection {
             buf: ConnectionBuffer{buf : [0;10000], offset: 0},
             token: LISTENER,
             status: ConnectionStatus::Initial,
-            closing: false,
             tls_session: tls_session,
         }
     }
@@ -199,8 +196,6 @@ impl Connection {
 
             //Send response
             self.tls_session.write_tls(&mut socket).unwrap();
-            //socket.sock.send_to(&self.tls_session, &self.addr);
-            self.closing = true;
             println!("HTTP response sent, sending close_notify...\n");
             self.tls_session.send_close_notify();
             self.tls_session.write_tls(&mut socket).unwrap();

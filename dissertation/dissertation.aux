@@ -1,0 +1,105 @@
+\relax 
+\citation{quic-implementations}
+\citation{govsrust}
+\citation{quic-documents}
+\@writefile{toc}{\contentsline {chapter}{\numberline {1}Introduction}{1}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {1.1}Overview}{1}}
+\@writefile{toc}{\contentsline {section}{\numberline {1.2}Outline of Paper}{2}}
+\citation{quic-implementations}
+\@writefile{toc}{\contentsline {chapter}{\numberline {2}Rust: Safer Systems Programming}{3}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {2.1}Memory Management Strategies}{3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.1}Reference Counting}{3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.2}Garbage Collection}{3}}
+\citation{rust-difficulty2}
+\citation{rust-difficulty3}
+\citation{rust-difficulty1}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.3}Manual Memory Management}{4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.4}Region-Based Memory Management}{4}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.2}A Steep Learning Curve}{4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.1}Ownership}{4}}
+\@writefile{toc}{\contentsline {subsubsection}{\texttt  {Copy} and \texttt  {Clone}}{4}}
+\citation{double-free}
+\citation{compiler-error-list}
+\@writefile{toc}{\contentsline {subsubsection}{\texttt  {Box<T>}}{5}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.2}Lifetimes}{5}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.3}\texttt  {String} and \texttt  {str}}{5}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2.4}Compiler Errors}{5}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.3}\texttt  {if} and \texttt  {match}}{6}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.4}\texttt  {Result} and \texttt  {Option}}{6}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.5}Traits}{6}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.6}\texttt  {unsafe} Blocks}{6}}
+\@writefile{toc}{\contentsline {section}{\numberline {2.7}Cargo}{6}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {3}The IETF: Open-Sourcing the Internet}{7}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {3.1}QUIC Working Group}{7}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.2}TLS Working Group}{7}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.3}Rough Consensus and Running Code}{7}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.4}Corporate Interests}{7}}
+\citation{iyengar-ossification}
+\@writefile{toc}{\contentsline {chapter}{\numberline {4}The QUIC Protocol}{8}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {4.1}Existing Work to Improve TCP}{8}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.2}Protection For Legacy Systems}{8}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.3}Overcoming Ossification}{8}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.4}Anatomy of a QUIC Connection}{9}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.1}UDP Sockets}{9}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.2}QUIC Packets}{9}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.3}LongHeader}{9}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.4}ShortHeader}{9}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.5}Handshake Process}{9}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.6}Payload Frames}{9}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4.7}Connection Teardown}{9}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {5}Project Scope and Requirements}{10}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {chapter}{\numberline {6}Creating Mercury: A Rust-Based QUIC Library}{11}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {6.1}The \texttt  {mio} Crate}{11}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.2}\texttt  {header} module}{11}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.3}Porting TLS 1.3 to UDP}{11}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3.1}Selecting a TLS Library}{11}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.4}Modifying the \texttt  {rustls} Server Example}{12}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4.1}Events Poll}{12}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4.2}Simulating Connections in UDP}{12}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4.3}Custom Socket Type: \texttt  {QuicSocket}}{12}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4.4}Consolidating Handshake TLS Messages}{12}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.5}Modifying the \texttt  {rustls} Client Example}{12}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {7}Status and Future Work}{13}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {7.1}Current Status}{13}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.2}Version Negotiation}{13}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.3}Frames}{13}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.4}Streams and Concurrency}{13}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.5}Loss Recovery}{13}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.6}Interop Testing}{13}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.6.1}Unexpected IPv6 Behaviour}{13}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.7}Version 10}{13}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.8}Deciding between DTLS and TLS}{13}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.8.1}Conflicting Advice from TLS Working Group}{13}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {8}Conclusions}{14}}
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\@writefile{toc}{\contentsline {section}{\numberline {8.1}Rust for Low-Level Networking}{14}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.2}Working on a Solo Project in the IETF}{14}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.3}Potential of Userspace Protocols}{14}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.4}The Future of QUIC}{14}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4.1}A Less Open Internet?}{14}}
+\bibstyle{plain}
+\bibdata{references.bib}
+\bibcite{compiler-error-list}{1}
+\bibcite{rust-difficulty2}{2}
+\bibcite{quic-implementations}{3}
+\bibcite{rust-difficulty3}{4}
+\bibcite{govsrust}{5}
+\bibcite{quic-documents}{6}
+\bibcite{iyengar-ossification}{7}
+\bibcite{double-free}{8}
+\bibcite{rust-difficulty1}{9}

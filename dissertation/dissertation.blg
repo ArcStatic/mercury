@@ -1,0 +1,50 @@
+This is BibTeX, Version 0.99d (TeX Live 2015/Debian)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: dissertation.aux
+The style file: plain.bst
+Database file #1: references.bib.bib
+Warning--to sort, need author or key in quic-implementations
+Warning--to sort, need author or key in rust-difficulty2
+Warning--to sort, need author or key in compiler-error-list
+You've used 9 entries,
+            2118 wiz_defined-function locations,
+            537 strings with 5061 characters,
+and the built_in function-call counts, 1844 in all, are:
+= -- 184
+> -- 45
+< -- 0
++ -- 21
+- -- 12
+* -- 68
+:= -- 289
+add.period$ -- 33
+call.type$ -- 9
+change.case$ -- 33
+chr.to.int$ -- 0
+cite$ -- 12
+duplicate$ -- 63
+empty$ -- 202
+format.name$ -- 12
+if$ -- 416
+int.to.chr$ -- 0
+int.to.str$ -- 9
+missing$ -- 0
+newline$ -- 54
+num.names$ -- 12
+pop$ -- 76
+preamble$ -- 1
+purify$ -- 24
+quote$ -- 0
+skip$ -- 52
+stack$ -- 0
+substring$ -- 45
+swap$ -- 9
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 36
+warning$ -- 3
+while$ -- 12
+width$ -- 10
+write$ -- 102
+(There were 3 warnings)

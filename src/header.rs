@@ -175,8 +175,7 @@ pub enum Header {
 }
 
 
-//Methods associated with enum Header
-impl Header{
+impl Header {
     
 	///Return a representation of Header as Bytes
 	pub fn encode(self) -> Bytes {

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2017.11.19)  11 MAR 2018 21:41
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2017.11.19)  14 MAR 2018 07:38
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -339,8 +339,7 @@ File: utxsyc.fd 2000/12/15 v3.1
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map} <./images/CompSci_colour.pd
 f>] [1]
 (./dissertation.toc
-LaTeX Font Info:    Try loading font information for OT1+txtt on input line 15.
-
+LaTeX Font Info:    Try loading font information for OT1+txtt on input line 9.
  (/usr/share/texlive/texmf-dist/tex/latex/txfonts/ot1txtt.fd
 File: ot1txtt.fd 2000/12/15 v3.1
 ) [2
@@ -351,52 +350,51 @@ File: ot1txtt.fd 2000/12/15 v3.1
 
  [4]
 Chapter 1.
-[1
-
-]
-LaTeX Font Info:    Try loading font information for OMS+txr on input line 39.
- (/usr/share/texlive/texmf-dist/tex/latex/txfonts/omstxr.fd
+LaTeX Font Info:    Try loading font information for OMS+txr on input line 36.
+(/usr/share/texlive/texmf-dist/tex/latex/txfonts/omstxr.fd
 File: omstxr.fd 2000/12/15 v3.1
 )
 LaTeX Font Info:    Font shape `OMS/txr/m/n' in size <10.95> not available
-(Font)              Font shape `OMS/txsy/m/n' tried instead on input line 39.
- [2]
+(Font)              Font shape `OMS/txsy/m/n' tried instead on input line 36.
+ [1
+
+] [2]
 Chapter 2.
 [3
 
 ]
 LaTeX Font Info:    Font shape `OT1/txtt/bx/n' in size <10.95> not available
-(Font)              Font shape `OT1/txtt/b/n' tried instead on input line 92.
+(Font)              Font shape `OT1/txtt/b/n' tried instead on input line 83.
  [4]
 LaTeX Font Info:    Font shape `OT1/txtt/bx/n' in size <12> not available
-(Font)              Font shape `OT1/txtt/b/n' tried instead on input line 115.
+(Font)              Font shape `OT1/txtt/b/n' tried instead on input line 106.
 LaTeX Font Info:    Font shape `OT1/txtt/bx/n' in size <14.4> not available
-(Font)              Font shape `OT1/txtt/b/n' tried instead on input line 122.
+(Font)              Font shape `OT1/txtt/b/n' tried instead on input line 113.
  [5] [6]
 Chapter 3.
 [7
 
-]
+] [8]
 Chapter 4.
-[8
+[9
 
-] [9]
+] [10]
 Chapter 5.
-[10
+[11
 
 ]
 Chapter 6.
-[11
+[12
 
-] [12]
+] [13]
 Chapter 7.
-[13
+[14
 
 ]
 Chapter 8.
-[14
+[15
 
-] (./dissertation.bbl [15]
+] (./dissertation.bbl [16]
 Underfull \hbox (badness 10000) in paragraph at lines 20--26
 []\OT1/txr/m/n/10.95 Andrew Brinker.  Set-ting ex-pec-ta-tions for rust's dif-f
 i-culty.
@@ -409,34 +407,42 @@ ctations-for-rusts-difficulty/,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 28--34
+Underfull \hbox (badness 1521) in paragraph at lines 28--32
+[]\OT1/txr/m/n/10.95 A. Lan-g-ley et al.  The quic trans-port pro-to-col: De-si
+gn and internet-scale de-ploy-ment.
+ []
+
+Missing character: There is no Ã in font txr!
+Missing character: There is no ¼ in font txr!
+
+Underfull \hbox (badness 10000) in paragraph at lines 40--46
 []\OT1/txr/m/n/10.95 The Com-puter Lan-guage Bench-marks Game.  Rust pro-grams 
 ver-sus go.
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 28--34
+Underfull \hbox (badness 10000) in paragraph at lines 40--46
 \OT1/txr/m/n/10.95 https://benchmarksgame.alioth.debian.org/u64q/compare.php?la
 ng=rust&lang2=go, Febru-ary
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 36--40
+Underfull \hbox (badness 10000) in paragraph at lines 48--52
 []\OT1/txr/m/n/10.95 QUIC Work-ing Group IETF.  Quic work-ing group doc-u-ments
  page.
  []
 
-) [16
+) [17
 
 ] (./dissertation.aux) ) 
 Here is how much of TeX's memory you used:
- 2939 strings out of 494953
- 40401 string characters out of 6180976
- 96269 words of memory out of 5000000
- 6144 multiletter control sequences out of 15000+600000
+ 2941 strings out of 494953
+ 40439 string characters out of 6180976
+ 96277 words of memory out of 5000000
+ 6146 multiletter control sequences out of 15000+600000
  36955 words of font info for 88 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 38i,7n,23p,587b,172s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 38i,7n,23p,720b,173s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.
 enc}</usr/share/texlive/texmf-dist/fonts/type1/public/txfonts/rtxr.pfb></usr/sh
 are/texlive/texmf-dist/fonts/type1/public/txfonts/txbtt.pfb></usr/share/texlive
@@ -444,10 +450,10 @@ are/texlive/texmf-dist/fonts/type1/public/txfonts/txbtt.pfb></usr/share/texlive
 fonts/type1/public/txfonts/txtt.pfb></usr/share/texlive/texmf-dist/fonts/type1/
 urw/times/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmr8
 a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
-Output written on dissertation.pdf (21 pages, 95934 bytes).
+Output written on dissertation.pdf (22 pages, 101005 bytes).
 PDF statistics:
- 105 PDF objects out of 1000 (max. 8388607)
- 73 compressed objects within 1 object stream
+ 108 PDF objects out of 1000 (max. 8388607)
+ 75 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  6 words of extra memory for PDF output out of 10000 (max. 10000000)
 

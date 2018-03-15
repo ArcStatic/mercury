@@ -1,12 +1,6 @@
 \contentsline {chapter}{\numberline {1}Introduction}{1}
-\contentsline {section}{\numberline {1.1}Overview}{1}
-\contentsline {section}{\numberline {1.2}Outline of Paper}{2}
 \contentsline {chapter}{\numberline {2}Rust: Safer Systems Programming}{3}
-\contentsline {section}{\numberline {2.1}Memory Management Strategies}{3}
-\contentsline {subsection}{\numberline {2.1.1}Reference Counting}{3}
-\contentsline {subsection}{\numberline {2.1.2}Garbage Collection}{3}
-\contentsline {subsection}{\numberline {2.1.3}Manual Memory Management}{4}
-\contentsline {subsection}{\numberline {2.1.4}Region-Based Memory Management}{4}
+\contentsline {section}{\numberline {2.1}Memory Management in Rust}{3}
 \contentsline {section}{\numberline {2.2}A Steep Learning Curve}{4}
 \contentsline {subsection}{\numberline {2.2.1}Ownership}{4}
 \contentsline {subsubsection}{\texttt {Copy} and \texttt {Clone}}{4}
@@ -14,54 +8,56 @@
 \contentsline {subsection}{\numberline {2.2.2}Lifetimes}{5}
 \contentsline {subsection}{\numberline {2.2.3}\texttt {String} and \texttt {str}}{5}
 \contentsline {subsection}{\numberline {2.2.4}Compiler Errors}{5}
-\contentsline {section}{\numberline {2.3}\texttt {if} and \texttt {match}}{6}
-\contentsline {section}{\numberline {2.4}\texttt {Result} and \texttt {Option}}{6}
-\contentsline {section}{\numberline {2.5}Traits}{6}
+\contentsline {section}{\numberline {2.3}\texttt {if} and \texttt {match}}{5}
+\contentsline {section}{\numberline {2.4}\texttt {Result} and \texttt {Option}}{5}
+\contentsline {section}{\numberline {2.5}Traits}{5}
 \contentsline {section}{\numberline {2.6}\texttt {unsafe} Blocks}{6}
 \contentsline {section}{\numberline {2.7}Cargo}{6}
+\contentsline {section}{\numberline {2.8}Summary}{6}
 \contentsline {chapter}{\numberline {3}The IETF: Open-Sourcing the Internet}{7}
 \contentsline {section}{\numberline {3.1}QUIC Working Group}{7}
-\contentsline {section}{\numberline {3.2}TLS Working Group}{7}
-\contentsline {section}{\numberline {3.3}Rough Consensus and Running Code}{7}
-\contentsline {section}{\numberline {3.4}Corporate Interests}{7}
-\contentsline {chapter}{\numberline {4}The QUIC Protocol}{8}
-\contentsline {section}{\numberline {4.1}Existing Work to Improve TCP}{8}
-\contentsline {section}{\numberline {4.2}Protection For Legacy Systems}{8}
-\contentsline {section}{\numberline {4.3}Overcoming Ossification}{8}
-\contentsline {section}{\numberline {4.4}Anatomy of a QUIC Connection}{9}
-\contentsline {subsection}{\numberline {4.4.1}UDP Sockets}{9}
-\contentsline {subsection}{\numberline {4.4.2}QUIC Packets}{9}
-\contentsline {subsection}{\numberline {4.4.3}LongHeader}{9}
-\contentsline {subsection}{\numberline {4.4.4}ShortHeader}{9}
-\contentsline {subsection}{\numberline {4.4.5}Handshake Process}{9}
-\contentsline {subsection}{\numberline {4.4.6}Payload Frames}{9}
-\contentsline {subsection}{\numberline {4.4.7}Connection Teardown}{9}
-\contentsline {chapter}{\numberline {5}Project Scope and Requirements}{10}
-\contentsline {chapter}{\numberline {6}Creating Mercury: A Rust-Based QUIC Library}{11}
-\contentsline {section}{\numberline {6.1}The \texttt {mio} Crate}{11}
-\contentsline {section}{\numberline {6.2}\texttt {header} module}{11}
-\contentsline {section}{\numberline {6.3}Porting TLS 1.3 to UDP}{11}
-\contentsline {subsection}{\numberline {6.3.1}Selecting a TLS Library}{11}
-\contentsline {section}{\numberline {6.4}Modifying the \texttt {rustls} Server Example}{12}
-\contentsline {subsection}{\numberline {6.4.1}Events Poll}{12}
-\contentsline {subsection}{\numberline {6.4.2}Simulating Connections in UDP}{12}
-\contentsline {subsection}{\numberline {6.4.3}Custom Socket Type: \texttt {QuicSocket}}{12}
-\contentsline {subsection}{\numberline {6.4.4}Consolidating Handshake TLS Messages}{12}
-\contentsline {section}{\numberline {6.5}Modifying the \texttt {rustls} Client Example}{12}
-\contentsline {chapter}{\numberline {7}Status and Future Work}{13}
-\contentsline {section}{\numberline {7.1}Current Status}{13}
-\contentsline {section}{\numberline {7.2}Version Negotiation}{13}
-\contentsline {section}{\numberline {7.3}Frames}{13}
-\contentsline {section}{\numberline {7.4}Streams and Concurrency}{13}
-\contentsline {section}{\numberline {7.5}Loss Recovery}{13}
-\contentsline {section}{\numberline {7.6}Interop Testing}{13}
-\contentsline {subsection}{\numberline {7.6.1}Unexpected IPv6 Behaviour}{13}
-\contentsline {section}{\numberline {7.7}Version 10}{13}
-\contentsline {section}{\numberline {7.8}Deciding between DTLS and TLS}{13}
-\contentsline {subsection}{\numberline {7.8.1}Conflicting Advice from TLS Working Group}{13}
-\contentsline {chapter}{\numberline {8}Conclusions}{14}
-\contentsline {section}{\numberline {8.1}Rust for Low-Level Networking}{14}
-\contentsline {section}{\numberline {8.2}Working on a Solo Project in the IETF}{14}
-\contentsline {section}{\numberline {8.3}Potential of Userspace Protocols}{14}
-\contentsline {section}{\numberline {8.4}The Future of QUIC}{14}
-\contentsline {subsection}{\numberline {8.4.1}A Less Open Internet?}{14}
+\contentsline {section}{\numberline {3.2}Rough Consensus and Running Code}{7}
+\contentsline {section}{\numberline {3.3}Corporate and Political Interests}{8}
+\contentsline {section}{\numberline {3.4}Summary}{8}
+\contentsline {chapter}{\numberline {4}The QUIC Protocol}{9}
+\contentsline {section}{\numberline {4.1}Related Work}{9}
+\contentsline {subsection}{\numberline {4.1.1}Protection For Legacy Systems}{9}
+\contentsline {subsection}{\numberline {4.1.2}Overcoming Ossification}{10}
+\contentsline {section}{\numberline {4.2}Anatomy of a QUIC Connection}{10}
+\contentsline {subsection}{\numberline {4.2.1}UDP Sockets}{10}
+\contentsline {subsection}{\numberline {4.2.2}QUIC Packets}{10}
+\contentsline {subsection}{\numberline {4.2.3}LongHeader}{10}
+\contentsline {subsection}{\numberline {4.2.4}ShortHeader}{10}
+\contentsline {subsection}{\numberline {4.2.5}Handshake Process}{10}
+\contentsline {subsection}{\numberline {4.2.6}Payload Frames}{10}
+\contentsline {subsection}{\numberline {4.2.7}Connection Teardown}{10}
+\contentsline {section}{\numberline {4.3}Summary}{10}
+\contentsline {chapter}{\numberline {5}Project Scope and Requirements}{11}
+\contentsline {chapter}{\numberline {6}Creating Mercury: A Rust-Based QUIC Library}{12}
+\contentsline {section}{\numberline {6.1}The \texttt {mio} Crate}{12}
+\contentsline {section}{\numberline {6.2}\texttt {header} module}{12}
+\contentsline {section}{\numberline {6.3}Porting TLS 1.3 to UDP}{12}
+\contentsline {subsection}{\numberline {6.3.1}Selecting a TLS Library}{12}
+\contentsline {section}{\numberline {6.4}Modifying the \texttt {rustls} Server Example}{13}
+\contentsline {subsection}{\numberline {6.4.1}Events Poll}{13}
+\contentsline {subsection}{\numberline {6.4.2}Simulating Connections in UDP}{13}
+\contentsline {subsection}{\numberline {6.4.3}Custom Socket Type: \texttt {QuicSocket}}{13}
+\contentsline {subsection}{\numberline {6.4.4}Consolidating Handshake TLS Messages}{13}
+\contentsline {section}{\numberline {6.5}Modifying the \texttt {rustls} Client Example}{13}
+\contentsline {chapter}{\numberline {7}Status and Future Work}{14}
+\contentsline {section}{\numberline {7.1}Current Status}{14}
+\contentsline {section}{\numberline {7.2}Version Negotiation}{14}
+\contentsline {section}{\numberline {7.3}Frames}{14}
+\contentsline {section}{\numberline {7.4}Streams and Concurrency}{14}
+\contentsline {section}{\numberline {7.5}Loss Recovery}{14}
+\contentsline {section}{\numberline {7.6}Interop Testing}{14}
+\contentsline {subsection}{\numberline {7.6.1}Unexpected IPv6 Behaviour}{14}
+\contentsline {section}{\numberline {7.7}Version 10}{14}
+\contentsline {section}{\numberline {7.8}Deciding between DTLS and TLS}{14}
+\contentsline {subsection}{\numberline {7.8.1}Conflicting Advice from TLS Working Group}{14}
+\contentsline {chapter}{\numberline {8}Conclusions}{15}
+\contentsline {section}{\numberline {8.1}Rust for Low-Level Networking}{15}
+\contentsline {section}{\numberline {8.2}Working on a Solo Project in the IETF}{15}
+\contentsline {section}{\numberline {8.3}Potential of Userspace Protocols}{15}
+\contentsline {section}{\numberline {8.4}The Future of QUIC}{15}
+\contentsline {subsection}{\numberline {8.4.1}A Less Open Internet?}{16}

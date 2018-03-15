@@ -1,4 +1,4 @@
-\begin{thebibliography}{1}
+\begin{thebibliography}{10}
 
 \bibitem{compiler-error-list}
 Rust compiler error index.
@@ -23,6 +23,18 @@ Andrew Brinker.
   http://www.suspectsemantics.com/blog/2017/01/26/setting-expectations-for-rusts-difficulty/,
   January 2017.
 \newblock Accessed 11/03/2018.
+
+\bibitem{gquic-development}
+A.~Langley et~al.
+\newblock The quic transport protocol: Design and internet-scale deployment.
+\newblock https://dl.acm.org/citation.cfm?doid=3098822.3098842, August 2017.
+\newblock Accessed 13/03/2018.
+
+\bibitem{quic-traffic-2018}
+J.~Rüth et~al.
+\newblock A first look at quic in the wild.
+\newblock https://arxiv.org/pdf/1801.05168.pdf, January 2018.
+\newblock Accessed 13/03/2018.
 
 \bibitem{govsrust}
 The Computer Language~Benchmarks Game.

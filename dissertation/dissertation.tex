@@ -52,21 +52,15 @@ C and C++ are still the languages of choice for systems programming - the vast m
 Rust uses region-based memory management and ownership to allow efficient, predictable use of resources while minimising the risk of memory leaks, illegal memory accesses, and race conditions. This focus on safety and performance is perfect for a multithreaded transport protocol, but no IETF implementation has taken advantage of it yet.
 
 \section{Memory Management in Rust}
-There are several strategies which programming languages use to manage memory allocation:
+There are several strategies which programming languages use to for memory management.
 
-[This might be better as a list?]
-
-\subsection{Reference Counting}
 [Discuss Python's abstraction of malloc and free - low-effort for programmers and good for small numbers of objects with lots of references, but terrible performance for lots of small objects. Requires intervention to detect and eliminate isolated cycles.]
 
-\subsection{Garbage Collection}
 [Discuss Java's 'stop the world' approach and generational collection - new used as abstraction for malloc. No effort required from the programmer but performance suffers. Makes Java unsuitable for systems programming due to slowdown and unpredictable use of resources.]
 
-\subsection{Manual Memory Management}
 [C's use of malloc and free - fast and efficient when done correctly, but requires caution from the programmer. Compiler does not check for memory leaks, segmentation faults, or buffer overflows caused by incorrect memory management. Multithreaded applications are even more complex to manage.]
 [Include sample code showing a buffer overflow error]
 
-\subsection{Region-Based Memory Management}
 Rust uses region-based memory management to free allocated heap memory as soon as the compiler detects that a value can no longer be accessed. In practice, this means that a Rust program will implicitly call \texttt{drop()} on a variable which is going out of scope when a function ends, and will free the heap memory which was allocated for its associated value.
 
 [Include a code fragment and diagram to illustrate this]
@@ -130,46 +124,76 @@ There's even functionality in Cargo to detail a specific compiler error using th
 \section{Cargo}
 [Makes building projects and including code from other crates very easy. Rustdoc generates documentation which follows a consistent format - makes unfamiliar libraries easier to learn how to use and reduces the potential for errors in the documentation (typos in code, outdated types, etc).]
 
+\section{Summary}
+['Is the trade-off from Rust worth it?' - Very much so. Initial learning curve is harsh, but the stability, speed, efficient use of resources, and ease of debugging is worth it long-term. Dismissing languages for having unconventional ideas impedes progress.]
+
 
 \pagebreak
 
 
 \chapter{The IETF: Open-Sourcing the Internet}
 
-\section{QUIC Working Group}
-[Talk about mailing lists, github repos, and meetings - anyone is free to participate, no restrictions on entry]
+The Internet Engineering Task Force is a community open to anyone who wishes to participate in developing Internet standards. Subjects of interest are first informally discussed as a 'birds of a feather' (BoF) meeting. If the participants agree that the topic is complex enough to warrant further work, a BoF can apply to become a working group.
 
-\section{TLS Working Group}
+Each working group is assigned to an area, with the group's work being overseen by an area director. Drafts being submitted for consideration as standards (RFCs) are reviewed by the Internet Engineering Steering Group (IESG) before being officially released. The Internet Assigned Numbers Authority ensures that Internet protocols developed by working groups in the IETF do not have conflicting values.
+
+\section{QUIC Working Group}
+
+
+[Talk about mailing lists, github repos, and meetings - anyone is free to participate, no restrictions on entry]
 
 \section{Rough Consensus and Running Code}
 \begin{quotation}
 "We reject: kings, presidents and voting. We believe in: rough consensus and running code."
 \end{quotation}
 
-Focus placed on getting working implementations: no delays caused by taking official votes, development is guided by convincing people about ideas on the mailing list and/or at meetings.
+The IETF focuses on creating working implementations of projects undertaken by working groups. These projects are complex and it would be far too easy for them to become stalled through indecision if prototypes were not actively being developed and updated as required.
 
-\section{Corporate Interests}
-[GQUIC variant exists distinct from IETF-standardised QUIC (which in turn could be argued to be heavily influenced by Mozilla) - transport which has the potential to vary service-by-service is new territory, could have similar implications to Net Neutrality?]
+In the QUIC working group, development is guided by gaining rough consensus about issues on the mailing list, the GitHub issue tracker, and at meetings. No counted votes are taken, which eliminates any delays caused by the administrative overhead required for voting and allows for more subtlety in adopted solutions than a checkbox can offer. Favouring a group opinion instead of obeying an absolute authority significantly also reduces the chances of flawed drafts being submitted for IESG review.
 
+The flexibility of rough consensus has advantages for large projects like QUIC. The working group's milestones have been repeatedly pushed back due to unexpected complexities discovered through mailing list discussion and interoperability testing. Failing to meet deadlines is a matter of concern for the IESG, but delays are sometimes necessary to resolve a problem before it becomes too ingrained and becomes an obstacle to later development. Having the ability to change deadlines and project scope ensures the working group's official output will be secure, maintainable, and compatible with the wider Internet infrastructure.
+
+%'Does the process work?
+[Lots of energetic discussion on the mailing list and at meetings - no conditions on participation allows people to be honest in their views. Definitely an air of some people showing off, but ego isn't unique to the IETF. Group dynamics, corporate involvement, and public accountability reduces potential for genuinely toxic behaviour.
+
+The current system works with a relatively small, easily moderated number of participants, but could easily turn into a Stack Overflow-like culture if thousands of people suddenly joined.]
+
+\section{Corporate and Political Interests}
+[GQUIC variant exists distinct from IETF-standardised QUIC (which in turn could be argued to be heavily influenced by Mozilla) - transport which has the potential to vary service-by-service is new territory, could have similar implications to net neutrality?
+
+Some developments do end up being hijacked for political purposes (eg. Differentiated Services is key component in attacking net neutrality, RFCs 2474 and 2475). This could be intentional for participants representing corporations, or lack of awareness from engineers who are solely focused on technical challenges. Dedicated IRTF group set up to assess the human rights issues associated with IETF work (Human Rights Protocol Considerations Research Group).
+
+Need to find out what kind of checks IESG does for drafts before they become RFCs - any checking for socio-political stuff with HRPC or is it purely technical issues?]
+
+\section{Summary}
+The IETF has a self-enforced hierarchy to co-ordinate the release of official standards, but it allows a lot of freedom as a participant: everyone is free to post to mailing lists, submit pull requests on a working group repo, or even form a BoF.
+
+However, the main drivers of progress in the QUIC working group are representatives from large corporations. While the IETF is a good venue for these companies to co-operate on developing a mutually compatible protocol, it is difficult in practice for individual participants to gain enough experience to make a significant contribution: without funding which allows someone to study the QUIC group's extensive documents as part of their working day, the average person will not be able to gain enough knowledge about the protocol before the next revision occurs. This is not an intentional barrier to entry imposed by the companies involved, simply a consequence of the complex nature of the project.
+
+[Will check if this is a trend for most working groups at IETF 101. I suspect it is.]
 
 \pagebreak
 
 
 \chapter{The QUIC Protocol}
 
-\section{Existing Work to Improve TCP}
+The QUIC (Quick UDP Internet Connections) protocol was originally developed by Google as a more efficient alternative to TCP. While previous work on improving transport protocols has focused on kernel modification, QUIC is a userspace protocol which uses UDP as a base and has stream-like behaviour and loss recovery integrated at application level. TLS 1.3 is used to encrypt QUIC packet payloads for data security, and sections of the header to evade middlebox interference.
+
+[Include diagram of stack]
+
+Google has been gradually deploying its own version of the protocol in the wild since 2013, with egress traffic over QUIC from its servers more than doubling after enabling it for the Android YouTube app in late 2016.\cite{gquic-development} As of 2018, 42.1\% of Google traffic and up to 9.1\% of total Internet traffic is transported using QUIC.\cite{quic-traffic-2018}
+
+In June 2016, the IETF established the QUIC working group with the aim of creating a standardised version of the protocol. Representatives from Mozilla, Google, Facebook, and Apple are active on the working group's mailing list, and a range of IETF-compliant implementations are also being developed by teams at these companies.\cite{quic-implementations}
+
+\section{Related Work}
 [Standard TCP stacks are slow and most do not use TLS 1.3 as standard
 
-NetMap and StackMap have been attempted as kernel-level improvements on TCP, but they have restrictions (taking up an entire networking interface, potential problems with encryption]
+NetMap and StackMap have been attempted as kernel-level improvements on TCP, but they have restrictions (taking up an entire networking interface, potential problems with encryption)]
 
-QUIC aims to become a userspace improvement on TCP: uses UDP as a base transport and adds flow control, loss recovery, and encryption with TLS 1.3
-
-Initial version developed by Google and still in use for their services in Chrome (5\% of internet traffic), standardised general-use version in development by IETF (representatives from Mozilla, Google, Facebook and BBC active on mailing list, a range of different implementations)]
-
-\section{Protection For Legacy Systems}
+\subsection{Protection For Legacy Systems}
 [Recent operating systems have TCP stacks with theoretically comparable performance to QUIC (TCP fast-open), but some systems cannot be upgraded (eg. NHS systems forced to continue using Windows XP). Userspace protocols allow at least some degree of improved performance and protection.]
 
-\section{Overcoming Ossification}
+\subsection{Overcoming Ossification}
 [Reasons why middlebox-enforced ossification exists and strategies to avoid it (encryption, greasing)]
 
 "Encryption \textit{is} our defence against network ossification [...] That's the only defence we have left against network middleboxes at this point." \cite{iyengar-ossification}
@@ -196,6 +220,8 @@ Used for exchanging 1-RTT key-protected data.
 \subsection{Payload Frames}
 
 \subsection{Connection Teardown}
+
+\section{Summary}
 
 
 \pagebreak
@@ -254,6 +280,7 @@ Mozilla NSS and OpenSSL are highly customisable, but far too heavyweight for the
 \subsection{Unexpected IPv6 Behaviour}
 
 \section{Version 10}
+[Lack of backwards compatibility between drafts has been a setback - changes between v7 and v8 were significant, changing to v10 will require a redesign]
 
 \section{Deciding between DTLS and TLS}
 
@@ -268,7 +295,9 @@ Mozilla NSS and OpenSSL are highly customisable, but far too heavyweight for the
 [Excellent choice after getting past the initial learning curve, huge potential if enough people support it.]
 
 \section{Working on a Solo Project in the IETF}
-[Impossible to complete a project alone as a student, but very good as a learning experience.]
+[Impossible to complete a project alone as a student, but very good as a learning experience.
+
+Overall, valuable insight into protocol development - being freely allowed to read mailing lists and watch meeting sessions provided valuable insights for the project. Keen to get more involved.]
 
 \section{Potential of Userspace Protocols}
 [Choices beyond basic TCP and UDP - applications can talk to a shim layer (eg. NEAT) to select a transport according to their current needs, no longer have to set up sockets directly. QUIC is just one of these possibilities.]

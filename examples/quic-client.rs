@@ -121,6 +121,7 @@ enum ConnectionStatus {
 /// state, and the underlying TLS-level session.
 struct TlsClient {
     socket: QuicSocket,
+    buf : ConnectionBuffer,
     status: ConnectionStatus,
     tls_session: rustls::ClientSession,
 }
@@ -136,6 +137,14 @@ impl TlsClient {
                 //Send initial TLS message to server
                 println!("Initial write (ClientHello)");
                 self.do_write();
+                let header = Header::LongHeader{packet_type : PacketTypeLong::Initial,
+                    connection_id : 0b00000011,
+                    packet_number : 0b00000001,
+                    version : 0x01010101,
+                    payload : self.buf.buf[0..self.buf.offset].to_vec()};
+
+                //Encode and send message to server
+                self.socket.sock.send_to(&header.encode(), &self.socket.addr).unwrap();
                 self.status = ConnectionStatus::Handshake;
             }
 
@@ -146,6 +155,14 @@ impl TlsClient {
                 //Send Finished response to complete handshake
                 println!("Sending message to complete handshake (Finished)");
                 self.do_write();
+                let header = Header::LongHeader{packet_type : PacketTypeLong::Handshake,
+                    connection_id : 0b00000011,
+                    packet_number : 0b00000001,
+                    version : 0x01010101,
+                    payload : self.buf.buf[0..self.buf.offset].to_vec()};
+
+                //Encode and send message to server
+                self.socket.sock.send_to(&header.encode(), &self.socket.addr).unwrap();
                 self.status = ConnectionStatus::DataSharing;
             }
 
@@ -153,6 +170,14 @@ impl TlsClient {
                 if ev.readiness().is_writable() {
                     println!("Sending data:");
                     self.do_write();
+                    let header = Header::LongHeader{packet_type : PacketTypeLong::ZeroRTTProtected,
+                        connection_id : 0b00000011,
+                        packet_number : 0b00000001,
+                        version : 0x01010101,
+                        payload : self.buf.buf[0..self.buf.offset].to_vec()};
+
+                    //Encode and send message to server
+                    self.socket.sock.send_to(&header.encode(), &self.socket.addr).unwrap();
                 } else {
                     println!("Reading data:");
                     self.do_read();
@@ -192,6 +217,7 @@ impl TlsClient {
     fn new(sock: QuicSocket, hostname: webpki::DNSNameRef, cfg: Arc<rustls::ClientConfig>) -> TlsClient {
         TlsClient {
             socket: sock,
+            buf: ConnectionBuffer{buf : [0;10000], offset: 0},
             status: ConnectionStatus::Initial,
             tls_session: rustls::ClientSession::new(&cfg, hostname),
         }
@@ -268,7 +294,10 @@ impl TlsClient {
 
     fn do_write(&mut self) {
         println!("write_tls(session -> socket) ... \n");
-        self.tls_session.write_tls(&mut self.socket).unwrap();
+        //self.tls_session.write_tls(&mut self.socket).unwrap();
+
+        self.buf.offset = self.tls_session.write_tls(&mut self.buf.buf[0..].as_mut()).unwrap();
+
     }
 
     fn register(&self, poll: &mut mio::Poll) {

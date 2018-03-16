@@ -98,12 +98,12 @@ impl Connection {
         }
     }
 
-    fn process_event(&mut self, poll: &mut mio::Poll, ev: &mio::Event, buffer: &mut [u8], msg_len: usize, socket: &mut QuicSocket) {
+    fn process_event(&mut self, poll: &mut mio::Poll, ev: &mio::Event, buffer: &[u8], socket: &mut QuicSocket) {
         match self.status {
 
             ConnectionStatus::Initial => {
                 println!("Initial:\n");
-                let client = self.do_tls_read(buffer, msg_len);
+                let client = self.do_tls_read(buffer);
                 println!("Client: {:?}\n", client);
                 let client_plain = self.try_plain_read(socket);
                 println!("Client_plain: {:?}\n", client_plain);
@@ -134,7 +134,7 @@ impl Connection {
 
             ConnectionStatus::DataSharing => {
                 println!("Sending response...\n");
-                let client = self.do_tls_read(buffer, msg_len);
+                let client = self.do_tls_read(buffer);
                 println!("Client: {:?}\n", client);
                 let client_plain = self.try_plain_read(socket);
                 println!("Client_plain: {:?}\n", client_plain);
@@ -160,10 +160,10 @@ impl Connection {
     }
 
 
-    fn do_tls_read(&mut self, buffer: &mut [u8], msg_len: usize) {
+    fn do_tls_read(&mut self, buffer: &[u8]) {
         // Read some TLS data.
         //Read from buffer passed from listener, data no longer in socket
-        let rc = self.tls_session.read_tls(&mut &buffer[0..msg_len]);
+        let rc = self.tls_session.read_tls(&mut &buffer[0..]);
         if rc.is_err() {
             let err = rc.unwrap_err();
             error!("read error {:?}", err);
@@ -198,32 +198,32 @@ impl Connection {
     fn send_response(&mut self, mut socket: &mut QuicSocket) {
         let response = b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nHello from Viridian!  \r\n";
 
-            self.tls_session
-                .write_all(response)
-                .unwrap();
+        self.tls_session
+            .write_all(response)
+            .unwrap();
 
-            //Track how long the TLS record given by write_tls is
-            //TLS record is written to ConnectionBuffer - [u8;10000] with custom format trait
-            //[u8] has read/write traits implemented by default
-            let res = self.tls_session.write_tls(&mut self.buf.buf.as_mut()).unwrap();
+        //Track how long the TLS record given by write_tls is
+        //TLS record is written to ConnectionBuffer - [u8;10000] with custom format trait
+        //[u8] has read/write traits implemented by default
+        let res = self.tls_session.write_tls(&mut self.buf.buf.as_mut()).unwrap();
 
-            //Construct header
-            //NOTE: this is not 0-RTT protected in current implementation
-            let header = Header::LongHeader{packet_type : PacketTypeLong::ZeroRTTProtected,
-                connection_id : 0b00000011,
-                packet_number : 0b00000010,
-                version : 0b00000101,
-                //Payload is not a fixed size number of bits
-                payload :self.buf.buf[0..res].to_vec()};
+        //Construct header
+        //NOTE: this is not 0-RTT protected in current implementation
+        let header = Header::LongHeader{packet_type : PacketTypeLong::ZeroRTTProtected,
+            connection_id : 0b00000011,
+            packet_number : 0b00000010,
+            version : 0b00000101,
+            //Payload is not a fixed size number of bits
+            payload :self.buf.buf[0..res].to_vec()};
 
-            //Encode and send response to client
-            socket.sock.send_to(&header.encode(), &self.addr).unwrap();
+        //Encode and send response to client
+        socket.sock.send_to(&header.encode(), &self.addr).unwrap();
 
-            println!("HTTP response sent, sending close_notify...\n");
-            self.tls_session.send_close_notify();
-            self.tls_session.write_tls(&mut socket).unwrap();
+        println!("HTTP response sent, sending close_notify...\n");
+        self.tls_session.send_close_notify();
+        self.tls_session.write_tls(&mut socket).unwrap();
 
-            self.status = ConnectionStatus::Closing;
+        self.status = ConnectionStatus::Closing;
 
     }
 
@@ -531,10 +531,8 @@ fn main(){
 
                 let mut header = decode(Bytes::from(&recv_buf[0..client_info.0]));
 
-                let mut payload_buf : [u8;7000] = header.get_payload().write[..];
-
                 //client.process_event(&mut poll, &event, &mut recv_buf, client_info.0, &mut tlsserv.server);
-                client.process_event(&mut poll, &event, payload, client_info.0, &mut tlsserv.server);
+                client.process_event(&mut poll, &event, &header.get_payload().as_slice(), &mut tlsserv.server);
 
                 //Change addr on QuicSocket to recent client to allow application data to be sent
                 tlsserv.server.addr = client_info.1;
@@ -547,7 +545,7 @@ fn main(){
                 let mut client = tlsserv.connections.get_mut(&tlsserv.server.addr).unwrap();
                 //Process writeable event
                 //Checks for most recently processed client in hashtable - this will need refactored in future
-                client.process_event(&mut poll, &event, &mut recv_buf, 0, &mut tlsserv.server);
+                client.process_event(&mut poll, &event, &mut recv_buf, &mut tlsserv.server);
 
             };
 

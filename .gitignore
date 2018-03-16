@@ -7,3 +7,10 @@ target/*
 *.crt
 *.cert
 *.txt
+dissertation/dissertation.aux
+dissertation/dissertation.bbl
+dissertation/dissertation.blg
+dissertation/dissertation.log
+dissertation/dissertation.pdf
+dissertation/dissertation.toc
+dissertation/l4proj.log

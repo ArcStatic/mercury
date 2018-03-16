@@ -226,7 +226,7 @@ impl Header {
 				println!("Capacity of packet: {}", BytesMut::capacity(&buf));
 				println!("Remaining capacity of packet: {}", BytesMut::remaining_mut(&buf));
 				
-				println!("{:?}", buf);
+				//println!("{:?}", buf);
 
 				//All non-Handshake and non-initial LongHeader packets must be padded to 1200 octets minimum according to IETF QUIC document v7
 				/*
@@ -239,9 +239,6 @@ impl Header {
 					println!("Padding added - any space left?: {:?}", BytesMut::has_remaining_mut(&buf));
 				}
 				*/
-
-				//buf.put(msg);
-				//buf.put(&b"LongHeaderByteString"[..]);
 
 				//Freeze buf to allow it to be used elsewhere
 				buf.freeze()
@@ -317,7 +314,8 @@ impl Header {
 	
 	}
 
-	
+
+	///DEPRECATED: NO LONGER USED
 	pub fn is_new_connection(&self) -> bool{
 	    match self {
 	        &Header::LongHeader{ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => {        
@@ -334,7 +332,7 @@ impl Header {
 
 
 
-	
+	/// DEPRECATED: DO NOT USE
 	pub fn is_compatible_version(&self) -> bool{
 	    match self {
 	        &Header::LongHeader{ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => {        
@@ -348,6 +346,46 @@ impl Header {
 	    }
 	}
 
+
+	/// Obtain a Header's packet number, if it is present
+	pub fn get_conn_id(&self) -> Option<u64> {
+		let conn_id = match self {
+			&Header::LongHeader {ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => Some(*connection_id),
+			&Header::ShortHeader {ref key_phase, ref connection_id, ref packet_number, ref payload} => match connection_id {
+				&Some(ConnectionID(id)) => Some(id),
+				&None => None
+			}
+		};
+		conn_id
+	}
+
+	/// Obtain a Header's packet number
+	///
+	/// Note that OneOctet(u8) and TwoOctet(u16) packet numbers will be cast to u32
+	pub fn get_packet_number(&self) -> u32 {
+		let packet_number = match self {
+			&Header::LongHeader {ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => *packet_number,
+			&Header::ShortHeader {ref key_phase, ref connection_id, ref packet_number, ref payload} => match packet_number {
+				&PacketNumber::OneOctet(num) => num as u32,
+				&PacketNumber::TwoOctet(num) => num as u32,
+				&PacketNumber::FourOctet(num) => num
+			}
+		};
+		packet_number
+	}
+
+	/// Obtain a Header's version number, if present
+	///
+	/// Will always return None for ShortHeader variants
+	pub fn get_version(&self) -> Option<u32> {
+		let version = match self {
+			&Header::LongHeader {ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => Some(*version),
+			&Header::ShortHeader {ref key_phase, ref connection_id, ref packet_number, ref payload} => None
+		};
+		version
+	}
+
+	/// Obtain an immutable reference to a Header's payload - payload data should not be modified within the struct, only read by other functions
 	pub fn get_payload(&self) -> &Vec<u8> {
 		let payload = match self {
 			&Header::LongHeader {ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => payload,

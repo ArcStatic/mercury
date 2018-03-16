@@ -122,6 +122,9 @@ enum ConnectionStatus {
 struct TlsClient {
     socket: QuicSocket,
     buf : ConnectionBuffer,
+    connection_id : u64,
+    packet_number : u32,
+    version : u32,
     status: ConnectionStatus,
     tls_session: rustls::ClientSession,
 }
@@ -214,10 +217,14 @@ impl io::Read for TlsClient {
 }
 
 impl TlsClient {
-    fn new(sock: QuicSocket, hostname: webpki::DNSNameRef, cfg: Arc<rustls::ClientConfig>) -> TlsClient {
+    fn new(sock: QuicSocket, connection_id : u64, hostname: webpki::DNSNameRef, cfg: Arc<rustls::ClientConfig>) -> TlsClient {
         TlsClient {
             socket: sock,
             buf: ConnectionBuffer{buf : [0;10000], offset: 0},
+            connection_id,
+            packet_number : 1,
+            //IETF experimental versions follow the format 0x?a?a?a?a
+            version : 0x2a2a2a2a,
             status: ConnectionStatus::Initial,
             tls_session: rustls::ClientSession::new(&cfg, hostname),
         }
@@ -239,9 +246,9 @@ impl TlsClient {
         let mut buf = BytesMut::with_capacity(7000);
         //Retrieve data from socket
         let offset = &self.socket.read(&mut array).unwrap();
-        println!("Array: {:?}", &array[0..*offset]);
+        //println!("Array: {:?}", &array[0..*offset]);
         let header = decode(Bytes::from(&array[0..*offset]));
-        println!("Header: {:?}", header);
+        //println!("Header: {:?}", header);
         let rc = self.tls_session.read_tls(&mut header.get_payload().as_slice());
         println!("read_tls (session -> socket) ... \n");
         println!("result: {:?}\n", rc);
@@ -648,7 +655,8 @@ fn client_setup() -> TlsClient {
     let quic_sock = QuicSocket{sock: socket, buf : tls_buf, addr : SocketAddr::from_str("127.0.0.1:9090").unwrap()};
 
     let dns_name = webpki::DNSNameRef::try_from_ascii_str(&args.arg_hostname).unwrap();
-    let mut tlsclient = TlsClient::new(quic_sock, dns_name, config);
+    //Hardcoded connection_id - not ideal
+    let mut tlsclient = TlsClient::new(quic_sock, 0x000ae012, dns_name, config);
 
     if args.flag_http {
         let httpreq = format!("GET / HTTP/1.1\r\nHost: {}\r\nConnection: \

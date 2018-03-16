@@ -50,13 +50,25 @@ impl TlsServer {
         }
     }
 
-    fn accept(&mut self, client_addr: SocketAddr) -> bool {
+    fn accept(&mut self, client_addr: SocketAddr, conn_id: Option<u64>, packet_number: u32, version: Option<u32>) -> bool {
         let tls_session = rustls::ServerSession::new(&self.tls_config);
 
         println!("Accepting new 'connection'\n");
         println!("{:?}\n", client_addr);
 
-        self.connections.insert(client_addr, Connection::new(client_addr, tls_session));
+        //ConnectionID and version should be present in Initial packets, since they're LongHeaders
+        //Added 0 as a fallback just in case
+        let connection_id = match conn_id.is_some(){
+            true => conn_id.unwrap(),
+            false => 0
+        };
+
+        let version = match version.is_some(){
+            true => version.unwrap(),
+            false => 0
+        };
+
+        self.connections.insert(client_addr, Connection::new(client_addr, connection_id, packet_number, version, tls_session));
 
         println!("Accept complete.\n");
         true
@@ -81,18 +93,27 @@ struct Connection {
     addr: SocketAddr,
     buf : ConnectionBuffer,
     token: mio::Token,
+    connection_id : u64,
+    packet_number : u32,
+    version : u32,
     status: ConnectionStatus,
     tls_session: rustls::ServerSession,
 }
 
 impl Connection {
     fn new(addr: SocketAddr,
+           connection_id: u64,
+           packet_number: u32,
+           version: u32,
            tls_session: rustls::ServerSession)
            -> Connection {
         Connection {
             addr: addr,
             buf: ConnectionBuffer{buf : [0;10000], offset: 0},
             token: LISTENER,
+            connection_id : connection_id,
+            packet_number : packet_number,
+            version : version,
             status: ConnectionStatus::Initial,
             tls_session: tls_session,
         }
@@ -116,12 +137,15 @@ impl Connection {
                 println!("Writing handshake message...\n");
                 self.do_tls_write();
 
+                //Increment packet number for each message sent
+                self.packet_number += 1;
+
                 //Must only be encoded once to avoid multiple headers being sent in the one message
                 if ev.readiness().is_writable() && !self.tls_session.wants_write(){
                     let header = Header::LongHeader{packet_type : PacketTypeLong::Handshake,
-                                                    connection_id : 0b00000011,
-                                                    packet_number : 0b00000001,
-                                                    version : 0x01010101,
+                                                    connection_id : self.connection_id,
+                                                    packet_number : self.packet_number,
+                                                    version : self.version,
                                                     payload : self.buf.buf[0..self.buf.offset].to_vec()};
 
                     //Encode and send message to client
@@ -206,14 +230,15 @@ impl Connection {
         //TLS record is written to ConnectionBuffer - [u8;10000] with custom format trait
         //[u8] has read/write traits implemented by default
         let res = self.tls_session.write_tls(&mut self.buf.buf.as_mut()).unwrap();
+        //Increment packet number for each message sent
+        self.packet_number += 1;
 
         //Construct header
         //NOTE: this is not 0-RTT protected in current implementation
         let header = Header::LongHeader{packet_type : PacketTypeLong::ZeroRTTProtected,
-            connection_id : 0b00000011,
-            packet_number : 0b00000010,
-            version : 0b00000101,
-            //Payload is not a fixed size number of bits
+            connection_id : self.connection_id,
+            packet_number : self.packet_number,
+            version : self.version,
             payload :self.buf.buf[0..res].to_vec()};
 
         //Encode and send response to client
@@ -223,12 +248,14 @@ impl Connection {
         self.tls_session.send_close_notify();
         let res = self.tls_session.write_tls(&mut self.buf.buf.as_mut()).unwrap();
 
+        //Increment packet number for each message sent
+        self.packet_number += 1;
+
         //self.tls_session.write_tls(&mut socket).unwrap();
         let header = Header::LongHeader{packet_type : PacketTypeLong::ZeroRTTProtected,
-            connection_id : 0b00000011,
-            packet_number : 0b00000010,
-            version : 0b00000101,
-            //Payload is not a fixed size number of bits
+            connection_id : self.connection_id,
+            packet_number : self.packet_number,
+            version : self.version,
             payload :self.buf.buf[0..res].to_vec()};
 
         //Encode and send response to client
@@ -242,13 +269,11 @@ impl Connection {
         let rc = self.tls_session.write_tls(&mut self.buf.buf[self.buf.offset..10000].as_mut());
         if rc.is_err() {
             error!("write failed {:?}", rc);
-            return;
         } else {
             //self.socket.buf.offset = rc.unwrap();
             self.buf.offset += rc.unwrap();
-            println!("Buf: {:?}", self.buf);
-            println!("Offset: {:?} - {:?}", self.buf.offset, self.buf.buf[self.buf.offset-1]);
-            return;
+            //println!("Buf: {:?}", self.buf);
+            //println!("Offset: {:?} - {:?}", self.buf.offset, self.buf.buf[self.buf.offset-1]);
         }
     }
 
@@ -528,9 +553,13 @@ fn main(){
                 println!("Readable event:");
                 //Error being thrown here for multiple clients
                 let client_info = tlsserv.server.sock.recv_from(&mut recv_buf).unwrap();
+                //Parse header from incoming packet
+                let mut header = decode(Bytes::from(&recv_buf[0..client_info.0]));
+
                 //If client's address is not in the hashmap containing established connections, call accept to add it
                 if !(tlsserv.connections.contains_key(&client_info.1)) {
-                    tlsserv.accept(client_info.1);
+                    //tlsserv.accept(client_info.1);
+                    tlsserv.accept(client_info.1, header.get_conn_id(), header.get_packet_number(), header.get_version());
                 };
 
                 //Process readable event as normal
@@ -539,8 +568,6 @@ fn main(){
                 println!("Event: {:?}\n", event);
                 //Obtain mutable reference to Connection for this specific client
                 let mut client = tlsserv.connections.get_mut(&client_info.1).unwrap();
-
-                let mut header = decode(Bytes::from(&recv_buf[0..client_info.0]));
 
                 //client.process_event(&mut poll, &event, &mut recv_buf, client_info.0, &mut tlsserv.server);
                 client.process_event(&mut poll, &event, &header.get_payload().as_slice(), &mut tlsserv.server);

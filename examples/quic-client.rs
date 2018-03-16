@@ -141,18 +141,7 @@ impl TlsClient {
                 println!("Initial write (ClientHello)");
                 self.do_write();
 
-                let header = Header::LongHeader{packet_type : PacketTypeLong::Initial,
-                    connection_id : self.connection_id,
-                    packet_number : self.packet_number,
-                    version : self.version,
-                    payload : self.buf.buf[0..self.buf.offset].to_vec()};
-
-                println!("Packet: {:?}", header);
-
-
-                //Encode and send message to server
-                self.socket.sock.send_to(&header.encode(), &self.socket.addr).unwrap();
-                self.status = ConnectionStatus::Handshake;
+                self.send_quic_packet();
             }
 
             ConnectionStatus::Handshake => {
@@ -163,19 +152,7 @@ impl TlsClient {
                 println!("Sending message to complete handshake (Finished)");
                 self.do_write();
 
-                self.packet_number += 1;
-
-                let header = Header::LongHeader{packet_type : PacketTypeLong::Handshake,
-                    connection_id : self.connection_id,
-                    packet_number : self.packet_number,
-                    version : self.version,
-                    payload : self.buf.buf[0..self.buf.offset].to_vec()};
-
-                println!("Packet: {:?}", header);
-
-                //Encode and send message to server
-                self.socket.sock.send_to(&header.encode(), &self.socket.addr).unwrap();
-                self.status = ConnectionStatus::DataSharing;
+                self.send_quic_packet();
             }
 
             ConnectionStatus::DataSharing => {
@@ -183,19 +160,8 @@ impl TlsClient {
                     println!("Sending data:");
                     self.do_write();
 
-                    self.packet_number += 1;
+                    self.send_quic_packet();
 
-                    let header = Header::LongHeader{packet_type : PacketTypeLong::ZeroRTTProtected,
-                        connection_id : self.connection_id,
-                        packet_number : self.packet_number,
-                        version : self.version,
-                        payload : self.buf.buf[0..self.buf.offset].to_vec()};
-
-                    println!("Packet: {:?}", header);
-
-
-                    //Encode and send message to server
-                    self.socket.sock.send_to(&header.encode(), &self.socket.addr).unwrap();
                 } else {
                     println!("Reading data:");
                     self.do_read();
@@ -211,6 +177,41 @@ impl TlsClient {
 
         self.reregister(poll);
     }
+
+    /// Send encoded QUIC Header
+    /// Increments packet count and connection status
+    pub fn send_quic_packet(&mut self) {
+
+        self.packet_number += 1;
+
+        let packet_type = match self.status {
+            ConnectionStatus::Initial => PacketTypeLong::Initial,
+            ConnectionStatus::Handshake  => PacketTypeLong::Handshake,
+            ConnectionStatus:: DataSharing => PacketTypeLong::ZeroRTTProtected,
+            ConnectionStatus:: Closing => panic!("Connection closing, cannot send packet.")
+        };
+
+        let header = Header::LongHeader {packet_type,
+            connection_id : self.connection_id,
+            packet_number : self.packet_number,
+            version : self.version,
+            payload : self.buf.buf[0..self.buf.offset].to_vec()};
+
+        println!("Packet: {:?}", header);
+
+        //Encode and send message to server using custom QuicSocket behaviour
+        self.socket.write(&header.encode()).unwrap();
+
+        self.status = match self.status {
+            ConnectionStatus::Initial => ConnectionStatus::Handshake,
+            ConnectionStatus::Handshake => ConnectionStatus::DataSharing,
+            ConnectionStatus:: DataSharing => ConnectionStatus::DataSharing,
+            ConnectionStatus:: Closing => panic!("Connection closing.")
+        };
+    }
+
+
+
 }
 
 /// We implement `io::Write` and pass through to the TLS session
@@ -319,9 +320,7 @@ impl TlsClient {
 
     fn do_write(&mut self) {
         println!("write_tls(session -> socket) ... \n");
-        //self.tls_session.write_tls(&mut self.socket).unwrap();
-        //Increment packet_number for each packet sent
-
+        //Write tls messages to buffer and update offset marker
         self.buf.offset = self.tls_session.write_tls(&mut self.buf.buf[0..].as_mut()).unwrap();
 
     }

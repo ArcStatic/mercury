@@ -108,14 +108,14 @@ impl Connection {
            tls_session: rustls::ServerSession)
            -> Connection {
         Connection {
-            addr: addr,
+            addr,
             buf: ConnectionBuffer{buf : [0;10000], offset: 0},
             token: LISTENER,
-            connection_id : connection_id,
-            packet_number : packet_number,
-            version : version,
+            connection_id,
+            packet_number,
+            version,
             status: ConnectionStatus::Initial,
-            tls_session: tls_session,
+            tls_session,
         }
     }
 
@@ -137,7 +137,7 @@ impl Connection {
                 println!("Writing handshake message...\n");
                 self.do_tls_write();
 
-                //Must only be encoded once to avoid multiple headers being sent in the one message
+                //Must only be encoded once to avoid multiple headers being sent in one packet
                 if ev.readiness().is_writable() && !self.tls_session.wants_write() {
 
                     //Increment packet number only when packet is ready to be sent
@@ -150,7 +150,7 @@ impl Connection {
                                                     payload : self.buf.buf[0..self.buf.offset].to_vec()};
 
                     //Encode and send message to client
-                    socket.sock.send_to(&header.encode(), &self.addr).unwrap();
+                    socket.write(&header.encode()).unwrap();
 
                     println!("TLS message sent.");
                     self.status = ConnectionStatus::DataSharing;
@@ -243,7 +243,7 @@ impl Connection {
             payload :self.buf.buf[0..res].to_vec()};
 
         //Encode and send response to client
-        socket.sock.send_to(&header.encode(), &self.addr).unwrap();
+        socket.write(&header.encode()).unwrap();
 
         println!("HTTP response sent, sending close_notify...\n");
         self.tls_session.send_close_notify();
@@ -260,13 +260,14 @@ impl Connection {
             payload :self.buf.buf[0..res].to_vec()};
 
         //Encode and send response to client
-        socket.sock.send_to(&header.encode(), &self.addr).unwrap();
+        socket.write(&header.encode()).unwrap();
 
         self.status = ConnectionStatus::Closing;
 
     }
 
     fn do_tls_write(&mut self) {
+        //Write from offset to allow multiple TLS messages to be buffered before sending
         let rc = self.tls_session.write_tls(&mut self.buf.buf[self.buf.offset..10000].as_mut());
         if rc.is_err() {
             error!("write failed {:?}", rc);
@@ -572,7 +573,7 @@ fn main(){
                 let mut client = tlsserv.connections.get_mut(&client_info.1).unwrap();
 
                 client.packet_number = header.get_packet_number();
-                
+
                 client.process_event(&mut poll, &event, &header.get_payload().as_slice(), &mut tlsserv.server);
 
                 //Change addr on QuicSocket to recent client to allow application data to be sent

@@ -140,11 +140,15 @@ impl TlsClient {
                 //Send initial TLS message to server
                 println!("Initial write (ClientHello)");
                 self.do_write();
+
                 let header = Header::LongHeader{packet_type : PacketTypeLong::Initial,
-                    connection_id : 0b00000011,
-                    packet_number : 0b00000001,
-                    version : 0x01010101,
+                    connection_id : self.connection_id,
+                    packet_number : self.packet_number,
+                    version : self.version,
                     payload : self.buf.buf[0..self.buf.offset].to_vec()};
+
+                println!("Packet: {:?}", header);
+
 
                 //Encode and send message to server
                 self.socket.sock.send_to(&header.encode(), &self.socket.addr).unwrap();
@@ -158,11 +162,16 @@ impl TlsClient {
                 //Send Finished response to complete handshake
                 println!("Sending message to complete handshake (Finished)");
                 self.do_write();
+
+                self.packet_number += 1;
+
                 let header = Header::LongHeader{packet_type : PacketTypeLong::Handshake,
-                    connection_id : 0b00000011,
-                    packet_number : 0b00000001,
-                    version : 0x01010101,
+                    connection_id : self.connection_id,
+                    packet_number : self.packet_number,
+                    version : self.version,
                     payload : self.buf.buf[0..self.buf.offset].to_vec()};
+
+                println!("Packet: {:?}", header);
 
                 //Encode and send message to server
                 self.socket.sock.send_to(&header.encode(), &self.socket.addr).unwrap();
@@ -173,11 +182,17 @@ impl TlsClient {
                 if ev.readiness().is_writable() {
                     println!("Sending data:");
                     self.do_write();
+
+                    self.packet_number += 1;
+
                     let header = Header::LongHeader{packet_type : PacketTypeLong::ZeroRTTProtected,
-                        connection_id : 0b00000011,
-                        packet_number : 0b00000001,
-                        version : 0x01010101,
+                        connection_id : self.connection_id,
+                        packet_number : self.packet_number,
+                        version : self.version,
                         payload : self.buf.buf[0..self.buf.offset].to_vec()};
+
+                    println!("Packet: {:?}", header);
+
 
                     //Encode and send message to server
                     self.socket.sock.send_to(&header.encode(), &self.socket.addr).unwrap();
@@ -222,7 +237,7 @@ impl TlsClient {
             socket: sock,
             buf: ConnectionBuffer{buf : [0;10000], offset: 0},
             connection_id,
-            packet_number : 1,
+            packet_number : 0,
             //IETF experimental versions follow the format 0x?a?a?a?a
             version : 0x2a2a2a2a,
             status: ConnectionStatus::Initial,
@@ -248,6 +263,9 @@ impl TlsClient {
         let offset = &self.socket.read(&mut array).unwrap();
         //println!("Array: {:?}", &array[0..*offset]);
         let header = decode(Bytes::from(&array[0..*offset]));
+        println!("Packet: {:?}", header);
+        //Update packet number to continue incrementation correctly
+        self.packet_number = header.get_packet_number();
         //println!("Header: {:?}", header);
         let rc = self.tls_session.read_tls(&mut header.get_payload().as_slice());
         println!("read_tls (session -> socket) ... \n");
@@ -302,6 +320,7 @@ impl TlsClient {
     fn do_write(&mut self) {
         println!("write_tls(session -> socket) ... \n");
         //self.tls_session.write_tls(&mut self.socket).unwrap();
+        //Increment packet_number for each packet sent
 
         self.buf.offset = self.tls_session.write_tls(&mut self.buf.buf[0..].as_mut()).unwrap();
 

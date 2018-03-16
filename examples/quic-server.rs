@@ -137,11 +137,12 @@ impl Connection {
                 println!("Writing handshake message...\n");
                 self.do_tls_write();
 
-                //Increment packet number for each message sent
-                self.packet_number += 1;
-
                 //Must only be encoded once to avoid multiple headers being sent in the one message
-                if ev.readiness().is_writable() && !self.tls_session.wants_write(){
+                if ev.readiness().is_writable() && !self.tls_session.wants_write() {
+
+                    //Increment packet number only when packet is ready to be sent
+                    self.packet_number += 1;
+
                     let header = Header::LongHeader{packet_type : PacketTypeLong::Handshake,
                                                     connection_id : self.connection_id,
                                                     packet_number : self.packet_number,
@@ -556,9 +557,10 @@ fn main(){
                 //Parse header from incoming packet
                 let mut header = decode(Bytes::from(&recv_buf[0..client_info.0]));
 
+                println!("Packet: {:?}", header);
+
                 //If client's address is not in the hashmap containing established connections, call accept to add it
                 if !(tlsserv.connections.contains_key(&client_info.1)) {
-                    //tlsserv.accept(client_info.1);
                     tlsserv.accept(client_info.1, header.get_conn_id(), header.get_packet_number(), header.get_version());
                 };
 
@@ -569,7 +571,8 @@ fn main(){
                 //Obtain mutable reference to Connection for this specific client
                 let mut client = tlsserv.connections.get_mut(&client_info.1).unwrap();
 
-                //client.process_event(&mut poll, &event, &mut recv_buf, client_info.0, &mut tlsserv.server);
+                client.packet_number = header.get_packet_number();
+                
                 client.process_event(&mut poll, &event, &header.get_payload().as_slice(), &mut tlsserv.server);
 
                 //Change addr on QuicSocket to recent client to allow application data to be sent

@@ -221,7 +221,18 @@ impl Connection {
 
         println!("HTTP response sent, sending close_notify...\n");
         self.tls_session.send_close_notify();
-        self.tls_session.write_tls(&mut socket).unwrap();
+        let res = self.tls_session.write_tls(&mut self.buf.buf.as_mut()).unwrap();
+
+        //self.tls_session.write_tls(&mut socket).unwrap();
+        let header = Header::LongHeader{packet_type : PacketTypeLong::ZeroRTTProtected,
+            connection_id : 0b00000011,
+            packet_number : 0b00000010,
+            version : 0b00000101,
+            //Payload is not a fixed size number of bits
+            payload :self.buf.buf[0..res].to_vec()};
+
+        //Encode and send response to client
+        socket.sock.send_to(&header.encode(), &self.addr).unwrap();
 
         self.status = ConnectionStatus::Closing;
 

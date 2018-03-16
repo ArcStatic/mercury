@@ -13,6 +13,13 @@ use std::fs;
 use std::collections;
 use std::io::{Read, Write, BufReader};
 
+extern crate bytes;
+use bytes::{Bytes, BytesMut, Buf, BufMut, IntoBuf, BigEndian};
+
+
+extern crate mercury;
+use mercury::header::{Header, PacketTypeLong, PacketTypeShort, PacketNumber, ConnectionID, ConnectionBuffer, decode};
+
 extern crate env_logger;
 
 #[macro_use]
@@ -201,9 +208,15 @@ impl TlsClient {
 
     /// We're ready to do a read.
     fn do_read(&mut self) {
-        // Read TLS data.  This fails if the underlying TCP connection
-        // is broken.
-        let rc = self.tls_session.read_tls(&mut self.socket);
+        // Read TLS data.
+        let mut array : [u8;7000] = [0;7000];
+        let mut buf = BytesMut::with_capacity(7000);
+        //Retrieve data from socket
+        let offset = &self.socket.read(&mut array).unwrap();
+        println!("Array: {:?}", &array[0..*offset]);
+        let header = decode(Bytes::from(&array[0..*offset]));
+        println!("Header: {:?}", header);
+        let rc = self.tls_session.read_tls(&mut header.get_payload().as_slice());
         println!("read_tls (session -> socket) ... \n");
         println!("result: {:?}\n", rc);
         if rc.is_err() {

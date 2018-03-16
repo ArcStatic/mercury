@@ -28,7 +28,7 @@ use rustls::{RootCertStore, Session, NoClientAuth, AllowAnyAuthenticatedClient,
              AllowAnyAnonymousOrAuthenticatedClient};
 
 extern crate mercury;
-use mercury::header::{Header, PacketTypeLong, PacketTypeShort, PacketNumber, ConnectionID, ConnectionBuffer, QuicSocket, TlsBuffer};
+use mercury::header::{Header, decode, PacketTypeLong, PacketTypeShort, PacketNumber, ConnectionID, ConnectionBuffer, QuicSocket, TlsBuffer};
 
 // Token for our listening socket.
 const LISTENER: mio::Token = mio::Token(0);
@@ -112,13 +112,21 @@ impl Connection {
 
             ConnectionStatus::Handshake => {
                 //ie. a write event is currently being processed, but no longer wants write after do_tls_write()
-                //Complete TLS handshake message will be sent
+                //Complete TLS handshake message will be sent as payload
                 println!("Writing handshake message...\n");
                 self.do_tls_write();
 
+                //Must only be encoded once to avoid multiple headers being sent in the one message
                 if ev.readiness().is_writable() && !self.tls_session.wants_write(){
-                    //TODO: refactor this garbage
-                    socket.sock.send_to(&self.buf.buf[0..self.buf.offset], &self.addr).unwrap();
+                    let header = Header::LongHeader{packet_type : PacketTypeLong::Handshake,
+                                                    connection_id : 0b00000011,
+                                                    packet_number : 0b00000001,
+                                                    version : 0x01010101,
+                                                    payload : self.buf.buf[0..self.buf.offset].to_vec()};
+
+                    //Encode and send message to client
+                    socket.sock.send_to(&header.encode(), &self.addr).unwrap();
+
                     println!("TLS message sent.");
                     self.status = ConnectionStatus::DataSharing;
                 }
@@ -194,8 +202,23 @@ impl Connection {
                 .write_all(response)
                 .unwrap();
 
-            //Send response
-            self.tls_session.write_tls(&mut socket).unwrap();
+            //Track how long the TLS record given by write_tls is
+            //TLS record is written to ConnectionBuffer - [u8;10000] with custom format trait
+            //[u8] has read/write traits implemented by default
+            let res = self.tls_session.write_tls(&mut self.buf.buf.as_mut()).unwrap();
+
+            //Construct header
+            //NOTE: this is not 0-RTT protected in current implementation
+            let header = Header::LongHeader{packet_type : PacketTypeLong::ZeroRTTProtected,
+                connection_id : 0b00000011,
+                packet_number : 0b00000010,
+                version : 0b00000101,
+                //Payload is not a fixed size number of bits
+                payload :self.buf.buf[0..res].to_vec()};
+
+            //Encode and send response to client
+            socket.sock.send_to(&header.encode(), &self.addr).unwrap();
+
             println!("HTTP response sent, sending close_notify...\n");
             self.tls_session.send_close_notify();
             self.tls_session.write_tls(&mut socket).unwrap();
@@ -503,8 +526,15 @@ fn main(){
                 event_count += 1;
                 println!("------------------\nEvent #{:?}\n", event_count);
                 println!("Event: {:?}\n", event);
+                //Obtain mutable reference to Connection for this specific client
                 let mut client = tlsserv.connections.get_mut(&client_info.1).unwrap();
-                client.process_event(&mut poll, &event, &mut recv_buf, client_info.0, &mut tlsserv.server);
+
+                let mut header = decode(Bytes::from(&recv_buf[0..client_info.0]));
+
+                let mut payload_buf : [u8;7000] = header.get_payload().write[..];
+
+                //client.process_event(&mut poll, &event, &mut recv_buf, client_info.0, &mut tlsserv.server);
+                client.process_event(&mut poll, &event, payload, client_info.0, &mut tlsserv.server);
 
                 //Change addr on QuicSocket to recent client to allow application data to be sent
                 tlsserv.server.addr = client_info.1;

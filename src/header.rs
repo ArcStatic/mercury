@@ -205,7 +205,7 @@ impl Header {
 				//Packet capacity will need to be larger for TLS handshake messages
 				//Not subject to 1200 octet limit like packets carrying application data
 				let mut buf = match packet_type {
-					PacketTypeLong::Handshake => BytesMut::with_capacity(5000),
+					PacketTypeLong::Handshake => BytesMut::with_capacity(7000),
 					_ => BytesMut::with_capacity(1200)
 				};
 
@@ -227,14 +227,19 @@ impl Header {
 				println!("Remaining capacity of packet: {}", BytesMut::remaining_mut(&buf));
 				
 				println!("{:?}", buf);
-				
-				//All sent LongHeader packets must be padded to 1200 octets minimum according to IETF QUIC document v7
-				let padding = vec![0; BytesMut::remaining_mut(&buf)];
-				//Can't use array - complains about non-constant value being supplied
-				//let padding = [0; BytesMut::remaining_mut(&buf)];
-				
-				buf.put_slice(&padding);
-				println!("Padding added - any space left?: {:?}", BytesMut::has_remaining_mut(&buf));
+
+				//All non-Handshake and non-initial LongHeader packets must be padded to 1200 octets minimum according to IETF QUIC document v7
+				/*
+				if packet_type != PacketTypeLong::Initial && packet_type != PacketTypeLong::Handshake {
+					let padding = vec![0; BytesMut::remaining_mut(&buf)];
+					//Can't use array - complains about non-constant value being supplied
+					//let padding = [0; BytesMut::remaining_mut(&buf)];
+
+					buf.put_slice(&padding);
+					println!("Padding added - any space left?: {:?}", BytesMut::has_remaining_mut(&buf));
+				}
+				*/
+
 				//buf.put(msg);
 				//buf.put(&b"LongHeaderByteString"[..]);
 
@@ -311,67 +316,6 @@ impl Header {
 		//buf.freeze()
 	
 	}
-	
-
-
-
-
-	
-	///Reconstruct a Header from Bytes
-	pub fn decode(self, input : Bytes) -> Header{
-	    
-	    println!("Length of received packet: {}", Bytes::len(&input));
-	    //Change this to vec?
-	    let mut input = Bytes::into_buf(input);
-
-	    let initial_octet = input.get_u8();
-
-		//Determine which packet type has been received
-		//First bit is 0 for ShortHeader
-		if ((0b10000000 & initial_octet) >> 7) == 0 {
-			//Get connection_omit, key_phase, and PacketTypeShort info
-			let packet_info = get_short_info(initial_octet).unwrap();
-			//Parse Connection ID if present
-			let connection_id = match connection_id_present(packet_info.0) {
-				true => Some(ConnectionID(input.get_u64::<BigEndian>())),
-				false => None
-			};
-
-			//Parse packet number
-			let packet_number = match packet_info.2 {
-				PacketTypeShort::OneOctet => PacketNumber::OneOctet(input.get_u8()),
-				PacketTypeShort::TwoOctet => PacketNumber::TwoOctet(input.get_u16::<BigEndian>()),
-				PacketTypeShort::FourOctet => PacketNumber::FourOctet(input.get_u32::<BigEndian>()),
-			};
-
-			//Retrieve payload from the rest of the packet
-			let payload = bytes::Buf::bytes(&input).to_vec();
-
-			Header::ShortHeader {
-				key_phase : packet_info.1,
-				connection_id,
-				packet_number,
-				payload,
-			}
-
-		//First bit is 1 for LongHeader
-		} else {
-			let packet_type = get_long_info(initial_octet).unwrap();
-			let connection_id = input.get_u64::<BigEndian>();
-			let packet_number = input.get_u32::<BigEndian>();
-			let version = input.get_u32::<BigEndian>();
-			let payload = bytes::Buf::bytes(&input).to_vec();
-
-			Header::LongHeader{
-				packet_type,
-				connection_id,
-				packet_number,
-				version,
-				payload
-			}
-		}
-	    
-	}
 
 	
 	pub fn is_new_connection(&self) -> bool{
@@ -403,7 +347,71 @@ impl Header {
 	        
 	    }
 	}
+
+	pub fn get_payload(&self) -> &Vec<u8> {
+		let payload = match self {
+			&Header::LongHeader {ref packet_type, ref connection_id, ref packet_number, ref version, ref payload} => payload,
+			&Header::ShortHeader {ref key_phase, ref connection_id, ref packet_number, ref payload} => payload
+		};
+		payload
+	}
     
+}
+
+///Reconstruct a Header from Bytes
+pub fn decode(input : Bytes) -> Header{
+
+	println!("Length of received packet: {}", Bytes::len(&input));
+	//Change this to vec?
+	let mut input = Bytes::into_buf(input);
+
+	let initial_octet = input.get_u8();
+
+	//Determine which packet type has been received
+	//First bit is 0 for ShortHeader
+	if ((0b10000000 & initial_octet) >> 7) == 0 {
+		//Get connection_omit, key_phase, and PacketTypeShort info
+		let packet_info = get_short_info(initial_octet).unwrap();
+		//Parse Connection ID if present
+		let connection_id = match connection_id_present(packet_info.0) {
+			true => Some(ConnectionID(input.get_u64::<BigEndian>())),
+			false => None
+		};
+
+		//Parse packet number
+		let packet_number = match packet_info.2 {
+			PacketTypeShort::OneOctet => PacketNumber::OneOctet(input.get_u8()),
+			PacketTypeShort::TwoOctet => PacketNumber::TwoOctet(input.get_u16::<BigEndian>()),
+			PacketTypeShort::FourOctet => PacketNumber::FourOctet(input.get_u32::<BigEndian>()),
+		};
+
+		//Retrieve payload from the rest of the packet
+		let payload = bytes::Buf::bytes(&input).to_vec();
+
+		Header::ShortHeader {
+			key_phase : packet_info.1,
+			connection_id,
+			packet_number,
+			payload,
+		}
+
+		//First bit is 1 for LongHeader
+	} else {
+		let packet_type = get_long_info(initial_octet).unwrap();
+		let connection_id = input.get_u64::<BigEndian>();
+		let packet_number = input.get_u32::<BigEndian>();
+		let version = input.get_u32::<BigEndian>();
+		let payload = bytes::Buf::bytes(&input).to_vec();
+
+		Header::LongHeader{
+			packet_type,
+			connection_id,
+			packet_number,
+			version,
+			payload
+		}
+	}
+
 }
 
 /// Parse info from first octet of LongHeader - currently this only consists of PacketTypeLong
@@ -411,7 +419,7 @@ impl Header {
 /// Will return an error if packet type is not recognised
 pub fn get_long_info(input : u8) -> Result<PacketTypeLong, &'static str> {
 	//LongHeader always has initial bit set to 1 (ie. value of input is 128 + value of packet type)
-	match input & 01111111 {
+	match input & 0b01111111 {
 		0x7F => return Ok(PacketTypeLong::Initial),
 		0x7E => return Ok(PacketTypeLong::Retry),
 		0x7D => return Ok(PacketTypeLong::Handshake),

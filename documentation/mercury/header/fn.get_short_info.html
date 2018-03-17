@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="API documentation for the Rust `connection_id_omitted` fn in crate `mercury`.">
-    <meta name="keywords" content="rust, rustlang, rust-lang, connection_id_omitted">
+    <meta name="description" content="API documentation for the Rust `get_short_info` fn in crate `mercury`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, get_short_info">
 
-    <title>mercury::header::connection_id_omitted - Rust</title>
+    <title>mercury::header::get_short_info - Rust</title>
 
     <link rel="stylesheet" type="text/css" href="../../normalize.css">
     <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
@@ -29,7 +29,7 @@
 
     <nav class="sidebar">
         
-        <p class='location'><a href='../index.html'>mercury</a>::<wbr><a href='index.html'>header</a></p><script>window.sidebarCurrent = {name: 'connection_id_omitted', ty: 'fn', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+        <p class='location'><a href='../index.html'>mercury</a>::<wbr><a href='index.html'>header</a></p><script>window.sidebarCurrent = {name: 'get_short_info', ty: 'fn', relpath: ''};</script><script defer src="sidebar-items.js"></script>
     </nav>
 
     <nav class="sub">
@@ -44,12 +44,14 @@
     </nav>
 
     <section id='main' class="content">
-<h1 class='fqn'><span class='in-band'>Function <a href='../index.html'>mercury</a>::<wbr><a href='index.html'>header</a>::<wbr><a class="fn" href=''>connection_id_omitted</a></span><span class='out-of-band'><span id='render-detail'>
+<h1 class='fqn'><span class='in-band'>Function <a href='../index.html'>mercury</a>::<wbr><a href='index.html'>header</a>::<wbr><a class="fn" href=''>get_short_info</a></span><span class='out-of-band'><span id='render-detail'>
                    <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
                        [<span class='inner'>&#x2212;</span>]
                    </a>
-               </span><a class='srclink' href='../../src/mercury/header.rs.html#464-466' title='goto source code'>[src]</a></span></h1>
-<pre class='rust fn'>pub fn connection_id_omitted(flag: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a>) -&gt; <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a></pre><div class='docblock'><p>This function is primarily for readability - returns the bool given for connection_omit by get_short_info</p>
+               </span><a class='srclink' href='../../src/mercury/header.rs.html#476-495' title='goto source code'>[src]</a></span></h1>
+<pre class='rust fn'>pub fn get_short_info(<br>&nbsp;&nbsp;&nbsp;&nbsp;input: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a><br>) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.tuple.html">(</a><a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a>, <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.u8.html">u8</a>, <a class="enum" href="../../mercury/header/enum.PacketTypeShort.html" title="enum mercury::header::PacketTypeShort">PacketTypeShort</a><a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.tuple.html">)</a>, &amp;'static <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>&gt;</pre><div class='docblock'><p>Get information for ShortHeader packet</p>
+
+<p>Returns a tuple detailing if connection_ID is omitted, which key phase is being used, and PacketTypeShort being used (ie. how many octets will be read for the packet number)</p>
 </div></section>
     <section id='search' class="content hidden"></section>
 

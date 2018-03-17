@@ -211,6 +211,7 @@ impl Header {
 
 			    //128 added to all values to mark this as a long header
 			    //AVTCORE compliance: packet numbers in range 127-122 (descending)
+				//NOTE: quic-transport draft 08 has a typo in packet type values - values used here are correct
 			    match packet_type {
 			        PacketTypeLong::Initial => buf.put_u8(128 + 0x7F),
                     PacketTypeLong::Retry => buf.put_u8(128 + 0x7E),

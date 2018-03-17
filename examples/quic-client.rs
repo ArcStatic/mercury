@@ -16,6 +16,12 @@ use std::io::{Read, Write, BufReader};
 extern crate bytes;
 use bytes::Bytes;
 
+extern crate rand;
+use rand::distributions::Range;
+use rand::Rng;
+
+extern crate num;
+use num::pow;
 
 extern crate mercury;
 use mercury::header::{Header, PacketTypeLong, ConnectionBuffer, decode};
@@ -232,13 +238,19 @@ impl io::Read for TlsClient {
 
 impl TlsClient {
     fn new(sock: QuicSocket, connection_id : u64, hostname: webpki::DNSNameRef, cfg: Arc<rustls::ClientConfig>) -> TlsClient {
+
+        //Packet number is a randomly chosen value between 0 and 2^32 - 1025
+        //Limited to 2^16 - 1025 due to overflow errors
+        let range = Range::new(0, pow(2, 16) - 1025);
+        let mut rng_value = rand::thread_rng().gen::<u32>();
         TlsClient {
             socket: sock,
             buf: ConnectionBuffer{buf : [0;10000], offset: 0},
             connection_id,
-            packet_number : 0,
+            packet_number : rng_value,
             //IETF experimental versions follow the format 0x?a?a?a?a
-            version : 0x2a2a2a2a,
+            //IETF quic-transport draft 08 uses version 0xff000008
+            version : 0xff000008,
             status: ConnectionStatus::Initial,
             tls_session: rustls::ClientSession::new(&cfg, hostname),
         }

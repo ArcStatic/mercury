@@ -5,7 +5,7 @@ use mio::net::UdpSocket;
 use std::net::SocketAddr;
 
 extern crate bytes;
-use bytes::{Bytes, BytesMut, Buf, BufMut, IntoBuf, BigEndian};
+use bytes::Bytes;
 
 #[macro_use]
 extern crate log;
@@ -28,7 +28,7 @@ use rustls::{RootCertStore, Session, NoClientAuth, AllowAnyAuthenticatedClient,
              AllowAnyAnonymousOrAuthenticatedClient};
 
 extern crate mercury;
-use mercury::header::{Header, decode, PacketTypeLong, PacketTypeShort, PacketNumber, ConnectionID, ConnectionBuffer, QuicSocket, TlsBuffer};
+use mercury::header::{Header, decode, PacketTypeLong, ConnectionBuffer, QuicSocket, TlsBuffer};
 
 // Token for our listening socket.
 const LISTENER: mio::Token = mio::Token(0);
@@ -164,11 +164,10 @@ impl Connection {
         //register succeeds for write events, reregister succeeds for read events
         match self.register(poll, socket) {
             Ok(_) => {
-                //println!("Register performed on poll.\n");
+
             },
             Err(_) => {
                 self.reregister(poll, socket).unwrap();
-                //println!("Reregister performed on poll.\n");
             }
         }
     }
@@ -206,7 +205,6 @@ impl Connection {
             println!("plaintext read {:?}\n\n", buf);
             self.send_response(socket);
         }
-        println!("End of try_plain_read\n");
     }
 
     fn send_response(&mut self, mut socket: &mut QuicSocket) {
@@ -241,6 +239,7 @@ impl Connection {
 
         self.send_quic_packet(socket);
 
+
     }
 
     fn do_tls_write(&mut self) {
@@ -249,10 +248,7 @@ impl Connection {
         if rc.is_err() {
             error!("write failed {:?}", rc);
         } else {
-            //self.socket.buf.offset = rc.unwrap();
             self.buf.offset += rc.unwrap();
-            //println!("Buf: {:?}", self.buf);
-            //println!("Offset: {:?} - {:?}", self.buf.offset, self.buf.buf[self.buf.offset-1]);
         }
     }
 
@@ -566,7 +562,7 @@ fn main(){
                 //Error being thrown here for multiple clients
                 let client_info = tlsserv.server.sock.recv_from(&mut recv_buf).unwrap();
                 //Parse header from incoming packet
-                let mut header = decode(Bytes::from(&recv_buf[0..client_info.0]));
+                let header = decode(Bytes::from(&recv_buf[0..client_info.0]));
 
                 println!("Packet: {:?}", header);
 

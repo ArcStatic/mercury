@@ -119,7 +119,7 @@ impl Connection {
         }
     }
 
-    fn process_event(&mut self, poll: &mut mio::Poll, ev: &mio::Event, buffer: &[u8], socket: &mut QuicSocket) {
+    fn process_event(&mut self, poll: &mut mio::Poll, ev: &mio::Event, buffer: &[u8], mut socket: &mut QuicSocket) {
         match self.status {
 
             ConnectionStatus::Initial => {
@@ -140,20 +140,8 @@ impl Connection {
                 //Must only be encoded once to avoid multiple headers being sent in one packet
                 if ev.readiness().is_writable() && !self.tls_session.wants_write() {
 
-                    //Increment packet number only when packet is ready to be sent
-                    self.packet_number += 1;
-
-                    let header = Header::LongHeader{packet_type : PacketTypeLong::Handshake,
-                                                    connection_id : self.connection_id,
-                                                    packet_number : self.packet_number,
-                                                    version : self.version,
-                                                    payload : self.buf.buf[0..self.buf.offset].to_vec()};
-
-                    //Encode and send message to client
-                    socket.write(&header.encode()).unwrap();
-
+                    self.send_quic_packet(&mut socket);
                     println!("TLS message sent.");
-                    self.status = ConnectionStatus::DataSharing;
                 }
             }
 
@@ -161,6 +149,7 @@ impl Connection {
                 println!("Sending response...\n");
                 let client = self.do_tls_read(buffer);
                 println!("Client: {:?}\n", client);
+                //Server will send HTTP response if try_plain_read yields valid plaintext
                 let client_plain = self.try_plain_read(socket);
                 println!("Client_plain: {:?}\n", client_plain);
             }
@@ -247,22 +236,10 @@ impl Connection {
 
         println!("HTTP response sent, sending close_notify...\n");
         self.tls_session.send_close_notify();
-        let res = self.tls_session.write_tls(&mut self.buf.buf.as_mut()).unwrap();
+        //let self = self.tls_session.write_tls(&mut self.buf.buf.as_mut()).unwrap();
+        self.buf.offset = self.tls_session.write_tls(&mut self.buf.buf.as_mut()).unwrap();
 
-        //Increment packet number for each message sent
-        self.packet_number += 1;
-
-        //self.tls_session.write_tls(&mut socket).unwrap();
-        let header = Header::LongHeader{packet_type : PacketTypeLong::ZeroRTTProtected,
-            connection_id : self.connection_id,
-            packet_number : self.packet_number,
-            version : self.version,
-            payload :self.buf.buf[0..res].to_vec()};
-
-        //Encode and send response to client
-        socket.write(&header.encode()).unwrap();
-
-        self.status = ConnectionStatus::Closing;
+        self.send_quic_packet(socket);
 
     }
 
@@ -315,6 +292,39 @@ impl Connection {
         } else {
             mio::Ready::readable()
         }
+    }
+
+    /// Send encoded QUIC Header
+    /// Increments packet count and connection status
+    pub fn send_quic_packet(&mut self, mut socket : &mut QuicSocket) {
+
+        self.packet_number += 1;
+
+        let packet_type = match self.status {
+            ConnectionStatus::Initial => PacketTypeLong::Initial,
+            ConnectionStatus::Handshake  => PacketTypeLong::Handshake,
+            ConnectionStatus:: DataSharing => PacketTypeLong::ZeroRTTProtected,
+            ConnectionStatus:: Closing => PacketTypeLong::ZeroRTTProtected
+        };
+
+        let header = Header::LongHeader {packet_type,
+            connection_id : self.connection_id,
+            packet_number : self.packet_number,
+            version : self.version,
+            payload : self.buf.buf[0..self.buf.offset].to_vec()};
+
+        println!("Packet: {:?}", header);
+
+        //Encode and send message to server using custom QuicSocket behaviour
+        socket.write(&header.encode()).unwrap();
+
+        self.status = match self.status {
+            ConnectionStatus::Initial => ConnectionStatus::Handshake,
+            ConnectionStatus::Handshake => ConnectionStatus::DataSharing,
+            //Closes connection after sending a single HTTP response
+            ConnectionStatus:: DataSharing => ConnectionStatus::Closing,
+            ConnectionStatus:: Closing => ConnectionStatus::Closing
+        };
     }
 
 }

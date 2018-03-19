@@ -6,13 +6,14 @@ This is an undergraduate dissertation project aiming to implement as much of the
 
 ### Current progress:
 * Rust compiles!
-* Client and server can perform a complete handshake process using the commands given
 * Encoding and decoding obeys AVTCORE WG guidance to avoid multiplexing conflicts (outlined in quic-transport v8)
 * Modified rustls to use UDP and mimic required QUIC behaviour
 * Handshake completes using TLS 1.3-encrypted payloads
 * All client-server communication uses correctly formatted QUIC packets
+* Rustdoc pages created
 
 ### Next steps:
+* Encrypt everything, not just payloads
 * Implement key management
 * Use frames in communications
 * Implement streams

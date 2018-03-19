@@ -34,34 +34,8 @@ use std::convert::AsRef;
 use std::string::String;
 use std::fmt;
 
-#[derive(Debug)]
-/// Buffer with custom read/write trait implementations for TLS messages
-pub struct TlsBuffer{
-	pub buf : Vec<u8>
-}
 
-impl Read for TlsBuffer {
-	fn read (&mut self, mut output : &mut [u8]) -> Result<usize, Error> {
-		//match output.write(&mut self.buf) {
-        output.write(&mut self.buf)?;
-		Ok(self.buf.len())
-	}
-}
-
-impl Write for TlsBuffer {
-	fn write(&mut self, input: &[u8]) -> Result<usize, Error>{
-		&mut self.buf.write(input)?;
-		//println!("tls_buf: {:?}", &mut self.buf);
-		Ok(self.buf.len())
-	}
-
-    //TODO: correct this
-	fn flush(&mut self) -> Result<(), Error>{
-		&mut self.buf.flush()?;
-		Ok(())
-	}
-}
-
+/// Buffer for holding connection-specific TLS messages
 pub struct ConnectionBuffer{
 	pub buf : [u8;10000],
 	pub offset : usize
@@ -74,19 +48,17 @@ impl fmt::Debug for ConnectionBuffer{
 	}
 }
 
-/// Custom socket which can hold client address info and buffer for data specific to that connection
-pub struct QuicSocket {
+/// Server socket which can hold client address info
+///
+/// Read trait loops to constantly listen for connections
+pub struct QuicServerSocket {
     pub sock : UdpSocket,
-    pub buf : TlsBuffer,
-    //pub buf : ConnectionBuffer,
     pub addr : SocketAddr,
 }
 
-impl Read for QuicSocket {
+/// Calls recv_from on UDP socket
+impl Read for QuicServerSocket {
     fn read (&mut self, mut output : &mut [u8]) -> Result<usize, Error> {
-        //match output.write(&mut self.buf) {
-        //println!("\nCustom socket recv_from...\n");
-        //UdpSocket::recv_from(&mut self.sock, output)?;
         loop {
             match UdpSocket::recv_from(&mut self.sock, output){
                 Ok(addr) => {
@@ -99,27 +71,68 @@ impl Read for QuicSocket {
     }
 }
 
-impl Write for QuicSocket {
+/// Calls send_to on UDP socket
+///
+/// Implemented as write trait to mimic writing to a stream
+impl Write for QuicServerSocket {
     fn write(&mut self, input : &[u8]) -> Result<usize, Error>{
         UdpSocket::send_to(&mut self.sock, input, &self.addr)?;
         Ok(input.len())
     }
 
-    //TODO: correct this
+    //TODO: correct this - problems with infinite recursion
     fn flush(&mut self) -> Result<(), Error>{
-        &mut self.buf.flush()?;
+        &mut self.flush()?;
         Ok(())
     }
 }
 
+/// Client socket which holds server address info
+pub struct QuicClientSocket {
+	pub sock : UdpSocket,
+	pub addr : SocketAddr,
+}
 
+
+/// Calls recv_from on UDP socket
+impl Read for QuicClientSocket {
+	fn read (&mut self, mut output : &mut [u8]) -> Result<usize, Error> {
+		//match output.write(&mut self.buf) {
+		//println!("\nCustom socket recv_from...\n");
+		//UdpSocket::recv_from(&mut self.sock, output)?;
+		let res = UdpSocket::recv_from(&mut self.sock, output)?;
+		println!("recv_from complete\n");
+		println!("received: {:?}\n", res.0);
+		Ok(res.0)
+	}
+}
+
+/// Calls send_to on UDP socket
+///
+/// Implemented as write trait to mimic writing to a stream
+impl Write for QuicClientSocket {
+	fn write(&mut self, input : &[u8]) -> Result<usize, Error>{
+		println!("\nCustom socket send_to...\n");
+		let bytes = UdpSocket::send_to(&mut self.sock, input, &self.addr)?;
+		println!("send_to complete\n");
+		println!("sent: {:?}\n", bytes);
+		//Ok(input.len())
+		Ok(bytes)
+	}
+
+	fn flush(&mut self) -> Result<(), Error>{
+		println!("\nCustom flush...\n");
+		&mut self.flush()?;
+		Ok(())
+	}
+}
 
 #[derive(Debug, PartialEq)]
 /// ID to keep track of clients
 pub struct ConnectionID(pub u64);
 
 #[derive(Debug, PartialEq)]
-/// How many octets are being used for the packet number section of a ShortHeader packet
+/// How many octets are being used for the packet number section of a ShortHeader packet and the associated value
 pub enum PacketNumber{
     OneOctet(u8),
     TwoOctet(u16),
@@ -127,7 +140,7 @@ pub enum PacketNumber{
 }
 
 #[derive(Debug)]
-/// How many octets are being used for the packet number section of a ShortHeader packet
+/// How many octets are being used for the packet number section of a ShortHeader packet - only a description, no associated value
 pub enum PacketTypeShort{
 	OneOctet,
 	TwoOctet,

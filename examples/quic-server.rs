@@ -28,21 +28,21 @@ use rustls::{RootCertStore, Session, NoClientAuth, AllowAnyAuthenticatedClient,
              AllowAnyAnonymousOrAuthenticatedClient};
 
 extern crate mercury;
-use mercury::header::{Header, decode, PacketTypeLong, ConnectionBuffer, QuicSocket, TlsBuffer};
+use mercury::header::{Header, decode, PacketTypeLong, ConnectionBuffer, QuicServerSocket};
 
 // Token for our listening socket.
 const LISTENER: mio::Token = mio::Token(0);
 
 //Structs and enums:
 struct TlsServer {
-    server: QuicSocket,
+    server: QuicServerSocket,
     connections: HashMap<SocketAddr, Connection>,
     tls_config: Arc<rustls::ServerConfig>
 }
 
 
 impl TlsServer {
-    fn new(server: QuicSocket, cfg: Arc<rustls::ServerConfig>) -> TlsServer {
+    fn new(server: QuicServerSocket, cfg: Arc<rustls::ServerConfig>) -> TlsServer {
         TlsServer {
             server: server,
             connections: HashMap::new(),
@@ -87,7 +87,7 @@ enum ConnectionStatus {
 /// This is a connection which has been accepted by the server,
 /// and is currently being served.
 ///
-/// It has a QuicSocket replacing a TCP-level stream, a TLS-level session, and some
+/// It has a QuicServerSocket replacing a TCP-level stream, a TLS-level session, and some
 /// other state/metadata.
 struct Connection {
     addr: SocketAddr,
@@ -119,7 +119,7 @@ impl Connection {
         }
     }
 
-    fn process_event(&mut self, poll: &mut mio::Poll, ev: &mio::Event, buffer: &[u8], mut socket: &mut QuicSocket) {
+    fn process_event(&mut self, poll: &mut mio::Poll, ev: &mio::Event, buffer: &[u8], mut socket: &mut QuicServerSocket) {
         match self.status {
 
             ConnectionStatus::Initial => {
@@ -191,7 +191,7 @@ impl Connection {
         }
     }
 
-    fn try_plain_read(&mut self, socket: &mut QuicSocket) {
+    fn try_plain_read(&mut self, socket: &mut QuicServerSocket) {
         // Read and process all available plaintext.
         let mut buf = Vec::new();
 
@@ -207,7 +207,7 @@ impl Connection {
         }
     }
 
-    fn send_response(&mut self, mut socket: &mut QuicSocket) {
+    fn send_response(&mut self, mut socket: &mut QuicServerSocket) {
         let response = b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nHello from Viridian!  \r\n";
 
         self.tls_session
@@ -254,7 +254,7 @@ impl Connection {
 
     //register works when socket wants write
     //Anything readable is already registered in initial loop in main, writable needs registering as new event
-    fn register(&self, poll: &mut mio::Poll, socket: &QuicSocket) -> Result<()>{
+    fn register(&self, poll: &mut mio::Poll, socket: &QuicServerSocket) -> Result<()>{
 
         poll.register(&socket.sock,
                       self.token,
@@ -265,7 +265,7 @@ impl Connection {
 
 
     //reregister works when socket wants read
-    fn reregister(&self, poll: &mut mio::Poll, socket: &QuicSocket) -> Result<()> {
+    fn reregister(&self, poll: &mut mio::Poll, socket: &QuicServerSocket) -> Result<()> {
 
         poll.reregister(&socket.sock,
                         self.token,
@@ -292,7 +292,7 @@ impl Connection {
 
     /// Send encoded QUIC Header
     /// Increments packet count and connection status
-    pub fn send_quic_packet(&mut self, mut socket : &mut QuicSocket) {
+    pub fn send_quic_packet(&mut self, mut socket : &mut QuicServerSocket) {
 
         self.packet_number += 1;
 
@@ -311,7 +311,7 @@ impl Connection {
 
         println!("Packet: {:?}", header);
 
-        //Encode and send message to server using custom QuicSocket behaviour
+        //Encode and send message to server using custom QuicServerSocket behaviour
         socket.write(&header.encode()).unwrap();
 
         self.status = match self.status {
@@ -520,9 +520,8 @@ fn server_setup() -> TlsServer {
     let bind_info = SocketAddr::from_str("127.0.0.1:9090").unwrap();
     let socket = UdpSocket::bind(&bind_info).unwrap();
 
-    let tls_buf = TlsBuffer { buf: vec![0; 10000] };
     //127.0.0.1:4444 is a placeholder for recent_client, will be changed as soon as new client accepted
-    let quic_sock = QuicSocket { sock: socket, buf: tls_buf, addr: SocketAddr::from_str("127.0.0.1:4444").unwrap() };
+    let quic_sock = QuicServerSocket { sock: socket, addr: SocketAddr::from_str("127.0.0.1:4444").unwrap() };
 
     let config = make_config(&args);
 
@@ -582,7 +581,7 @@ fn main(){
 
                 client.process_event(&mut poll, &event, &header.get_payload().as_slice(), &mut tlsserv.server);
 
-                //Change addr on QuicSocket to recent client to allow application data to be sent
+                //Change addr on QuicServerSocket to recent client to allow application data to be sent
                 tlsserv.server.addr = client_info.1;
 
             // If it's a writable event, client address info is already held in connections hashtable

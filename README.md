@@ -2,10 +2,9 @@
 
 [Documentation](https://htmlpreview.github.io/?https://raw.githubusercontent.com/ArcStatic/mercury/master/documentation/mercury/header/index.html)
 
-This is an undergraduate dissertation project aiming to implement as much of the QUIC protocol as humanely possible before March 2018. The current implementation is compliant with quic-transport draft 08, but will be upgraded to 09 over the next few months.
+This is an undergraduate dissertation project aiming to implement as much of the QUIC protocol as humanely possible before March 2018. The current implementation is compliant with quic-transport draft 08, but will be upgraded to 10 over the next few months.
 
 ### Current progress:
-* Rust compiles!
 * Encoding and decoding obeys AVTCORE WG guidance to avoid multiplexing conflicts (outlined in quic-transport v8)
 * Modified rustls to use UDP and mimic required QUIC behaviour
 * Handshake completes using TLS 1.3-encrypted payloads
@@ -14,8 +13,9 @@ This is an undergraduate dissertation project aiming to implement as much of the
 
 ### Next steps:
 * Encrypt everything, not just payloads
+* Add version negotiation, current implementation accepts anything
 * Implement key management
-* Use frames in communications
+* Use frames in communications, current version just sends "hello world" equivalent
 * Implement streams
 * Create tests using QuickCheck
 

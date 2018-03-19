@@ -17,14 +17,10 @@ extern crate bytes;
 use bytes::Bytes;
 
 extern crate rand;
-use rand::distributions::Range;
 use rand::Rng;
 
-extern crate num;
-use num::pow;
-
 extern crate mercury;
-use mercury::header::{Header, PacketTypeLong, ConnectionBuffer, decode};
+use mercury::header::{Header, PacketTypeLong, ConnectionBuffer, decode, QuicClientSocket};
 
 extern crate env_logger;
 
@@ -43,73 +39,6 @@ use rustls::Session;
 
 const CLIENT: mio::Token = mio::Token(0);
 
-//Custom structs:
-
-#[derive(Debug)]
-pub struct TlsBuffer{
-    pub buf : Vec<u8>
-}
-
-impl Read for TlsBuffer {
-    fn read (&mut self, mut output : &mut [u8]) -> Result<usize, Error> {
-        //match output.write(&mut self.buf) {
-        output.write(&mut self.buf)?;
-        Ok(self.buf.len())
-    }
-}
-
-impl Write for TlsBuffer {
-    fn write(&mut self, input: &[u8]) -> Result<usize, Error>{
-        println!("\nCustom write...\n");
-        &mut self.buf.write(input)?;
-        //println!("tls_buf: {:?}", &mut self.buf);
-        Ok(self.buf.len())
-    }
-
-    //TODO: correct this
-    fn flush(&mut self) -> Result<(), Error>{
-        println!("\nCustom flush...\n");
-        &mut self.buf.flush()?;
-        Ok(())
-    }
-}
-
-pub struct QuicSocket {
-    pub sock : UdpSocket,
-    pub buf : TlsBuffer,
-    pub addr : SocketAddr,
-}
-
-
-impl Read for QuicSocket {
-    fn read (&mut self, mut output : &mut [u8]) -> Result<usize, Error> {
-        //match output.write(&mut self.buf) {
-        //println!("\nCustom socket recv_from...\n");
-        //UdpSocket::recv_from(&mut self.sock, output)?;
-        let res = UdpSocket::recv_from(&mut self.sock, output)?;
-        println!("recv_from complete\n");
-        println!("received: {:?}\n", res.0);
-        Ok(res.0)
-    }
-}
-
-impl Write for QuicSocket {
-    fn write(&mut self, input : &[u8]) -> Result<usize, Error>{
-        println!("\nCustom socket send_to...\n");
-        let bytes = UdpSocket::send_to(&mut self.sock, input, &self.addr)?;
-        println!("send_to complete\n");
-        println!("sent: {:?}\n", bytes);
-        //Ok(input.len())
-        Ok(bytes)
-    }
-
-    //TODO: correct this
-    fn flush(&mut self) -> Result<(), Error>{
-        println!("\nCustom flush...\n");
-        &mut self.buf.flush()?;
-        Ok(())
-    }
-}
 
 #[derive(Debug, PartialOrd, PartialEq)]
 //Track which stage a connection is in
@@ -126,7 +55,7 @@ enum ConnectionStatus {
 /// This encapsulates the TCP-level connection, some connection
 /// state, and the underlying TLS-level session.
 struct TlsClient {
-    socket: QuicSocket,
+    socket: QuicClientSocket,
     buf : ConnectionBuffer,
     connection_id : u64,
     packet_number : u32,
@@ -205,7 +134,7 @@ impl TlsClient {
 
         println!("Packet: {:?}", header);
 
-        //Encode and send message to server using custom QuicSocket behaviour
+        //Encode and send message to server using custom QuicClientSocket behaviour
         self.socket.write(&header.encode()).unwrap();
 
         self.status = match self.status {
@@ -237,12 +166,10 @@ impl io::Read for TlsClient {
 }
 
 impl TlsClient {
-    fn new(sock: QuicSocket, connection_id : u64, hostname: webpki::DNSNameRef, cfg: Arc<rustls::ClientConfig>) -> TlsClient {
+    fn new(sock: QuicClientSocket, connection_id : u64, hostname: webpki::DNSNameRef, cfg: Arc<rustls::ClientConfig>) -> TlsClient {
 
         //Packet number is a randomly chosen value between 0 and 2^32 - 1025
-        //Limited to 2^16 - 1025 due to overflow errors
-        let range = Range::new(0, pow(2, 16) - 1025);
-        let mut rng_value = rand::thread_rng().gen::<u32>();
+        let rng_value = (rand::thread_rng().gen::<u32>()) - 1025;
         TlsClient {
             socket: sock,
             buf: ConnectionBuffer{buf : [0;10000], offset: 0},
@@ -676,10 +603,8 @@ fn client_setup() -> TlsClient {
 
     let config = make_config(&args);
 
-    //Custom QuicSocket setup
     //Create socket
-    let tls_buf = TlsBuffer{buf : Vec::new()};
-    let quic_sock = QuicSocket{sock: socket, buf : tls_buf, addr : SocketAddr::from_str("127.0.0.1:9090").unwrap()};
+    let quic_sock = QuicClientSocket{sock: socket, addr : SocketAddr::from_str("127.0.0.1:9090").unwrap()};
 
     let dns_name = webpki::DNSNameRef::try_from_ascii_str(&args.arg_hostname).unwrap();
     //Hardcoded connection_id - not ideal

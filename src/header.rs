@@ -48,84 +48,36 @@ impl fmt::Debug for ConnectionBuffer{
 	}
 }
 
-/// Server socket which can hold client address info
-///
-/// Read trait loops to constantly listen for connections
-pub struct QuicServerSocket {
+/// Socket which can hold client or server address info (ie. SocketAddr of intended recipient)
+pub struct QuicSocket {
     pub sock : UdpSocket,
     pub addr : SocketAddr,
 }
 
 /// Calls recv_from on UDP socket
-impl Read for QuicServerSocket {
+impl Read for QuicSocket {
     fn read (&mut self, mut output : &mut [u8]) -> Result<usize, Error> {
-        loop {
-            match UdpSocket::recv_from(&mut self.sock, output){
-                Ok(addr) => {
-                    println!("recv_from complete\n");
-                    return Ok(output.len());
-                }
-                Err(_) => continue,
-            }
-        }
+		let res = UdpSocket::recv_from(&mut self.sock, output)?;
+		Ok(res.0)
     }
 }
 
 /// Calls send_to on UDP socket
 ///
 /// Implemented as write trait to mimic writing to a stream
-impl Write for QuicServerSocket {
+impl Write for QuicSocket {
     fn write(&mut self, input : &[u8]) -> Result<usize, Error>{
         UdpSocket::send_to(&mut self.sock, input, &self.addr)?;
         Ok(input.len())
     }
 
-    //TODO: correct this - problems with infinite recursion
+    //TODO: find fix for this - problems with infinite recursion
     fn flush(&mut self) -> Result<(), Error>{
         &mut self.flush()?;
         Ok(())
     }
 }
 
-/// Client socket which holds server address info
-pub struct QuicClientSocket {
-	pub sock : UdpSocket,
-	pub addr : SocketAddr,
-}
-
-
-/// Calls recv_from on UDP socket
-impl Read for QuicClientSocket {
-	fn read (&mut self, mut output : &mut [u8]) -> Result<usize, Error> {
-		//match output.write(&mut self.buf) {
-		//println!("\nCustom socket recv_from...\n");
-		//UdpSocket::recv_from(&mut self.sock, output)?;
-		let res = UdpSocket::recv_from(&mut self.sock, output)?;
-		println!("recv_from complete\n");
-		println!("received: {:?}\n", res.0);
-		Ok(res.0)
-	}
-}
-
-/// Calls send_to on UDP socket
-///
-/// Implemented as write trait to mimic writing to a stream
-impl Write for QuicClientSocket {
-	fn write(&mut self, input : &[u8]) -> Result<usize, Error>{
-		println!("\nCustom socket send_to...\n");
-		let bytes = UdpSocket::send_to(&mut self.sock, input, &self.addr)?;
-		println!("send_to complete\n");
-		println!("sent: {:?}\n", bytes);
-		//Ok(input.len())
-		Ok(bytes)
-	}
-
-	fn flush(&mut self) -> Result<(), Error>{
-		println!("\nCustom flush...\n");
-		&mut self.flush()?;
-		Ok(())
-	}
-}
 
 #[derive(Debug, PartialEq)]
 /// ID to keep track of clients

@@ -8,7 +8,6 @@ use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 use std::str;
 use std::io;
-use std::io::Error;
 use std::fs;
 use std::collections;
 use std::io::{Read, Write, BufReader};
@@ -20,7 +19,7 @@ extern crate rand;
 use rand::Rng;
 
 extern crate mercury;
-use mercury::header::{Header, PacketTypeLong, ConnectionBuffer, decode, QuicClientSocket};
+use mercury::header::{Header, PacketTypeLong, ConnectionBuffer, decode, QuicSocket};
 
 extern crate env_logger;
 
@@ -55,7 +54,7 @@ enum ConnectionStatus {
 /// This encapsulates the TCP-level connection, some connection
 /// state, and the underlying TLS-level session.
 struct TlsClient {
-    socket: QuicClientSocket,
+    socket: QuicSocket,
     buf : ConnectionBuffer,
     connection_id : u64,
     packet_number : u32,
@@ -166,7 +165,7 @@ impl io::Read for TlsClient {
 }
 
 impl TlsClient {
-    fn new(sock: QuicClientSocket, connection_id : u64, hostname: webpki::DNSNameRef, cfg: Arc<rustls::ClientConfig>) -> TlsClient {
+    fn new(sock: QuicSocket, connection_id : u64, hostname: webpki::DNSNameRef, cfg: Arc<rustls::ClientConfig>) -> TlsClient {
 
         //Packet number is a randomly chosen value between 0 and 2^32 - 1025
         let rng_value = (rand::thread_rng().gen::<u32>()) - 1025;
@@ -604,7 +603,7 @@ fn client_setup() -> TlsClient {
     let config = make_config(&args);
 
     //Create socket
-    let quic_sock = QuicClientSocket{sock: socket, addr : SocketAddr::from_str("127.0.0.1:9090").unwrap()};
+    let quic_sock = QuicSocket{sock: socket, addr : SocketAddr::from_str("127.0.0.1:9090").unwrap()};
 
     let dns_name = webpki::DNSNameRef::try_from_ascii_str(&args.arg_hostname).unwrap();
     //Hardcoded connection_id - not ideal

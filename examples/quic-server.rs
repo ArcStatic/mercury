@@ -28,21 +28,21 @@ use rustls::{RootCertStore, Session, NoClientAuth, AllowAnyAuthenticatedClient,
              AllowAnyAnonymousOrAuthenticatedClient};
 
 extern crate mercury;
-use mercury::header::{Header, decode, PacketTypeLong, ConnectionBuffer, QuicServerSocket};
+use mercury::header::{Header, decode, PacketTypeLong, ConnectionBuffer, QuicSocket};
 
 // Token for our listening socket.
 const LISTENER: mio::Token = mio::Token(0);
 
 //Structs and enums:
 struct TlsServer {
-    server: QuicServerSocket,
+    server: QuicSocket,
     connections: HashMap<SocketAddr, Connection>,
     tls_config: Arc<rustls::ServerConfig>
 }
 
 
 impl TlsServer {
-    fn new(server: QuicServerSocket, cfg: Arc<rustls::ServerConfig>) -> TlsServer {
+    fn new(server: QuicSocket, cfg: Arc<rustls::ServerConfig>) -> TlsServer {
         TlsServer {
             server: server,
             connections: HashMap::new(),
@@ -119,7 +119,7 @@ impl Connection {
         }
     }
 
-    fn process_event(&mut self, poll: &mut mio::Poll, ev: &mio::Event, buffer: &[u8], mut socket: &mut QuicServerSocket) {
+    fn process_event(&mut self, poll: &mut mio::Poll, ev: &mio::Event, buffer: &[u8], mut socket: &mut QuicSocket) {
         match self.status {
 
             ConnectionStatus::Initial => {
@@ -191,7 +191,7 @@ impl Connection {
         }
     }
 
-    fn try_plain_read(&mut self, socket: &mut QuicServerSocket) {
+    fn try_plain_read(&mut self, socket: &mut QuicSocket) {
         // Read and process all available plaintext.
         let mut buf = Vec::new();
 
@@ -207,7 +207,7 @@ impl Connection {
         }
     }
 
-    fn send_response(&mut self, mut socket: &mut QuicServerSocket) {
+    fn send_response(&mut self, mut socket: &mut QuicSocket) {
         let response = b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nHello from Viridian!  \r\n";
 
         self.tls_session
@@ -254,7 +254,7 @@ impl Connection {
 
     //register works when socket wants write
     //Anything readable is already registered in initial loop in main, writable needs registering as new event
-    fn register(&self, poll: &mut mio::Poll, socket: &QuicServerSocket) -> Result<()>{
+    fn register(&self, poll: &mut mio::Poll, socket: &QuicSocket) -> Result<()>{
 
         poll.register(&socket.sock,
                       self.token,
@@ -265,7 +265,7 @@ impl Connection {
 
 
     //reregister works when socket wants read
-    fn reregister(&self, poll: &mut mio::Poll, socket: &QuicServerSocket) -> Result<()> {
+    fn reregister(&self, poll: &mut mio::Poll, socket: &QuicSocket) -> Result<()> {
 
         poll.reregister(&socket.sock,
                         self.token,
@@ -292,7 +292,7 @@ impl Connection {
 
     /// Send encoded QUIC Header
     /// Increments packet count and connection status
-    pub fn send_quic_packet(&mut self, mut socket : &mut QuicServerSocket) {
+    pub fn send_quic_packet(&mut self, mut socket : &mut QuicSocket) {
 
         self.packet_number += 1;
 
@@ -309,7 +309,7 @@ impl Connection {
             version : self.version,
             payload : self.buf.buf[0..self.buf.offset].to_vec()};
 
-        println!("Packet: {:?}", header);
+        println!("Sending packet: {:?}", header);
 
         //Encode and send message to server using custom QuicServerSocket behaviour
         socket.write(&header.encode()).unwrap();
@@ -521,7 +521,7 @@ fn server_setup() -> TlsServer {
     let socket = UdpSocket::bind(&bind_info).unwrap();
 
     //127.0.0.1:4444 is a placeholder for recent_client, will be changed as soon as new client accepted
-    let quic_sock = QuicServerSocket { sock: socket, addr: SocketAddr::from_str("127.0.0.1:4444").unwrap() };
+    let quic_sock = QuicSocket { sock: socket, addr: SocketAddr::from_str("127.0.0.1:4444").unwrap() };
 
     let config = make_config(&args);
 

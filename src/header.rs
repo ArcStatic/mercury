@@ -480,4 +480,3 @@ pub fn connection_id_omitted(flag : bool) -> bool {
 
 
 
-

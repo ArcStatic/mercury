@@ -63,7 +63,26 @@ struct TlsClient {
     tls_session: rustls::ClientSession,
 }
 
+/// We implement `io::Write` and pass through to the TLS session
+impl io::Write for TlsClient {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.tls_session.write(bytes)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.tls_session.flush()
+    }
+}
+
+impl io::Read for TlsClient {
+    fn read(&mut self, bytes: &mut [u8]) -> io::Result<usize> {
+        //println!("read (session -> bytes) ... \n");
+        self.tls_session.read(bytes)
+    }
+}
+
 impl TlsClient {
+
     fn process_event(&mut self,
              poll: &mut mio::Poll,
              ev: &mio::Event) {
@@ -144,39 +163,21 @@ impl TlsClient {
         };
     }
 
-}
 
-/// We implement `io::Write` and pass through to the TLS session
-impl io::Write for TlsClient {
-    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        self.tls_session.write(bytes)
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        self.tls_session.flush()
-    }
-}
-
-impl io::Read for TlsClient {
-    fn read(&mut self, bytes: &mut [u8]) -> io::Result<usize> {
-        //println!("read (session -> bytes) ... \n");
-        self.tls_session.read(bytes)
-    }
-}
-
-impl TlsClient {
-    fn new(sock: QuicSocket, connection_id : u64, hostname: webpki::DNSNameRef, cfg: Arc<rustls::ClientConfig>) -> TlsClient {
+    fn new(sock: QuicSocket, hostname: webpki::DNSNameRef, cfg: Arc<rustls::ClientConfig>) -> TlsClient {
 
         //Packet number is a randomly chosen value between 0 and 2^32 - 1025
-        let rng_value = (rand::thread_rng().gen::<u32>()) - 1025;
+        let rng_packet_number = (rand::thread_rng().gen::<u32>()) - 1025;
+        //Connection ID is a randomly chosen value between 0 and 2^64
+        let rng_conn_id = rand::thread_rng().gen::<u64>();
         TlsClient {
             socket: sock,
             buf: ConnectionBuffer{buf : [0;10000], offset: 0},
-            connection_id,
-            packet_number : rng_value,
+            connection_id: rng_conn_id,
+            packet_number: rng_packet_number,
             //IETF experimental versions follow the format 0x?a?a?a?a
             //IETF quic-transport draft 08 uses version 0xff000008
-            version : 0xff000008,
+            version: 0xff000008,
             status: ConnectionStatus::Initial,
             tls_session: rustls::ClientSession::new(&cfg, hostname),
         }
@@ -607,7 +608,7 @@ fn client_setup() -> TlsClient {
 
     let dns_name = webpki::DNSNameRef::try_from_ascii_str(&args.arg_hostname).unwrap();
     //Hardcoded connection_id - not ideal
-    let mut tlsclient = TlsClient::new(quic_sock, 0x000ae012, dns_name, config);
+    let mut tlsclient = TlsClient::new(quic_sock, dns_name, config);
 
     if args.flag_http {
         let httpreq = format!("GET / HTTP/1.1\r\nHost: {}\r\nConnection: \

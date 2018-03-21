@@ -399,7 +399,7 @@ Usage:
   tlsclient (--help | -h)
 
 Options:
-    -p, --port PORT     Connect to PORT [default: 443].
+    -p, --port PORT     Bind to PORT [default: 443].
     --http              Send a basic HTTP GET request for /.
     --cafile CAFILE     Read root certificates from CAFILE.
     --auth-key KEY      Read client authentication key from KEY.
@@ -417,6 +417,9 @@ Options:
     --mtu MTU           Limit outgoing messages to MTU bytes.
     --version, -v       Show tool version.
     --help, -h          Show this screen.
+    -d, --dest DEST     If not using localhost, specify a destination in the format addr:port.
+    --dns DNS     Specify the DNS name of the destination.
+
 ";
 
 #[derive(Debug, Deserialize)]
@@ -435,6 +438,8 @@ struct Args {
     flag_auth_key: Option<String>,
     flag_auth_certs: Option<String>,
     arg_hostname: String,
+    flag_dest: String,
+    flag_dns: String,
 }
 
 /// Find a ciphersuite with the given name
@@ -530,12 +535,14 @@ fn make_config(args: &Args) -> Arc<rustls::ClientConfig> {
 
     if args.flag_cafile.is_some() {
         let cafile = args.flag_cafile.as_ref().unwrap();
+        println!("CA file arg parsed.");
 
         let certfile = fs::File::open(&cafile).expect("Cannot open CA file");
         let mut reader = BufReader::new(certfile);
         config.root_store
             .add_pem_file(&mut reader)
             .unwrap();
+        println!("pem file added.");
     } else {
         config.root_store.add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
         config.ct_logs = Some(&ct_logs::LOGS);
@@ -586,6 +593,7 @@ fn client_setup() -> TlsClient {
         let mut logger = env_logger::LogBuilder::new();
         logger.parse("debug");
         logger.init().unwrap();
+        println!("Logger enabled.");
     }
 
     //let port = args.flag_port.unwrap_or(5050);
@@ -594,7 +602,13 @@ fn client_setup() -> TlsClient {
         Some(num) => num,
         None => 5050
     };
-    let addr = IpAddr::from_str("127.0.0.1").unwrap();
+
+    let addr = match &*args.arg_hostname {
+        "localhost" => IpAddr::from_str("127.0.0.1").unwrap(),
+        _ => IpAddr::from_str(&args.arg_hostname).unwrap()
+    };
+
+    //let addr = IpAddr::from_str("127.0.0.1").unwrap();
     println!("port: {:?}", port);
     println!("addr: {:?}", addr);
     let socket = UdpSocket::bind(&SocketAddr::new(addr, port)).unwrap();
@@ -603,11 +617,23 @@ fn client_setup() -> TlsClient {
 
     let config = make_config(&args);
 
-    //Create socket
-    let quic_sock = QuicSocket{sock: socket, addr : SocketAddr::from_str("127.0.0.1:9090").unwrap()};
+    let quic_sock = match &*args.arg_hostname {
+        "localhost" => QuicSocket{sock: socket, addr : SocketAddr::from_str("127.0.0.1:9090").unwrap()},
+        _ => QuicSocket{sock: socket, addr : SocketAddr::from_str(&args.flag_dest).unwrap()}
+    };
 
-    let dns_name = webpki::DNSNameRef::try_from_ascii_str(&args.arg_hostname).unwrap();
-    //Hardcoded connection_id - not ideal
+    println!("quic_sock created.");
+
+    //Create socket
+    //let quic_sock = QuicSocket{sock: socket, addr : SocketAddr::from_str("127.0.0.1:9090").unwrap()};
+
+    let dns_name = match &*args.arg_hostname {
+        "localhost" => webpki::DNSNameRef::try_from_ascii_str(&args.arg_hostname).unwrap(),
+        _ => webpki::DNSNameRef::try_from_ascii_str(&args.flag_dns).unwrap()
+    };
+
+    println!("DNS name accepted.");
+
     let mut tlsclient = TlsClient::new(quic_sock, dns_name, config);
 
     if args.flag_http {

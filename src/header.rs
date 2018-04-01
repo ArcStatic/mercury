@@ -129,7 +129,7 @@ pub enum Header {
 	},
 
 	ShortHeader {
-		key_phase : u8,
+		key_phase : bool,
 		//connection_id is present only if the bit for connection ID flag is set to 0
 		connection_id : Option<ConnectionID>,
 		packet_number : PacketNumber,
@@ -239,8 +239,8 @@ impl Header {
 				};
 				
 				let key_phase_bit = match key_phase {
-				    1 => 0b00100000,
-				    _ => 0b00000000
+				    true => 0b00100000,
+				    false => 0b00000000
 				};
 				
 				//AVTCORE compliance: packet types in descending order
@@ -439,7 +439,7 @@ pub fn get_long_info(input : u8) -> Result<PacketTypeLong, &'static str> {
 /// Get information for ShortHeader packet
 ///
 /// Returns a tuple detailing if connection_ID is omitted, which key phase is being used, and PacketTypeShort being used (ie. how many octets will be read for the packet number)
-pub fn get_short_info(input : u8) -> Result<(bool, u8, PacketTypeShort), &'static str> {
+pub fn get_short_info(input : u8) -> Result<(bool, bool, PacketTypeShort), &'static str> {
 	//Second bit of first octet determines if ConnectionID is omitted or not
 	let connection_omit = match (input & 0b01000000) >> 6 {
 		0 => false,
@@ -447,7 +447,10 @@ pub fn get_short_info(input : u8) -> Result<(bool, u8, PacketTypeShort), &'stati
 	};
 
 	//Third bit of first octet determines which key phase is being used
-	let key_phase = (input & 0b00100000) >> 5;
+	let key_phase = match (input & 0b00100000) >> 5{
+		1 => true,
+		_ => false
+	};
 
 	//Final five bits of first octet determines how many octets will be used for the packet number
 	let packet_type = match input & 0b00011111 {

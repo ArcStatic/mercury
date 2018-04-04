@@ -559,15 +559,18 @@ fn main(){
             if event.readiness().is_readable() {
                 println!("Readable event:");
                 //Error being thrown here for multiple clients
-                let client_info = tlsserv.server.sock.recv_from(&mut recv_buf).unwrap();
+                //Read changes addr on QuicServerSocket to recent client to allow application data to be sent
+                let client_info = tlsserv.server.read(&mut recv_buf).unwrap();
                 //Parse header from incoming packet
-                let header = decode(Bytes::from(&recv_buf[0..client_info.0]));
+                let header = decode(Bytes::from(&recv_buf[0..client_info]));
 
                 println!("Packet: {:?}", header);
 
                 //If client's address is not in the hashmap containing established connections, call accept to add it
-                if !(tlsserv.connections.contains_key(&client_info.1)) {
-                    tlsserv.accept(client_info.1, header.get_conn_id(), header.get_packet_number(), header.get_version());
+                if !(tlsserv.connections.contains_key(&tlsserv.server.addr)) {
+                    //Clone here used because of borrowing conflicts - discarded from the heap as soon as accept exits though
+                    let new_addr = tlsserv.server.addr.clone();
+                    tlsserv.accept(new_addr, header.get_conn_id(), header.get_packet_number(), header.get_version());
                 };
 
                 //Process readable event as normal
@@ -575,14 +578,11 @@ fn main(){
                 println!("------------------\nEvent #{:?}\n", event_count);
                 println!("Event: {:?}\n", event);
                 //Obtain mutable reference to Connection for this specific client
-                let mut client = tlsserv.connections.get_mut(&client_info.1).unwrap();
+                let mut client = tlsserv.connections.get_mut(&tlsserv.server.addr).unwrap();
 
                 client.packet_number = header.get_packet_number();
 
                 client.process_event(&mut poll, &event, &header.get_payload().as_slice(), &mut tlsserv.server);
-
-                //Change addr on QuicServerSocket to recent client to allow application data to be sent
-                tlsserv.server.addr = client_info.1;
 
             // If it's a writable event, client address info is already held in connections hashtable
             } else {

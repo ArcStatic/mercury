@@ -58,6 +58,7 @@ pub struct QuicSocket {
 impl Read for QuicSocket {
     fn read (&mut self, mut output : &mut [u8]) -> Result<usize, Error> {
 		let res = UdpSocket::recv_from(&mut self.sock, output)?;
+		self.addr = res.1;
 		Ok(res.0)
     }
 }

@@ -7,6 +7,7 @@ extern crate rustls;
 extern crate bytes;
 extern crate webpki;
 extern crate webpki_roots;
+extern crate mio;
 
 use bytes::{Bytes, BytesMut, Buf, BufMut, IntoBuf, BigEndian};
 
@@ -33,6 +34,7 @@ use std::result::Result;
 use std::convert::AsRef;
 use std::string::String;
 use std::fmt;
+use mio::{Poll, Ready, Token, PollOpt};
 
 
 /// Buffer for holding connection-specific TLS messages
@@ -78,6 +80,23 @@ impl Write for QuicSocket {
         Ok(())
     }
 }
+
+/*
+impl mio::Evented for QuicSocket {
+	fn register(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+	self.sock.selector_id.associate_selector(poll)?;
+	self.sock.sys.register(poll, token, interest, opts)
+	}
+
+	fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+	self.sock.sys.reregister(poll, token, interest, opts)
+	}
+
+	fn deregister(&self, poll: &Poll) -> io::Result<()> {
+	self.sock.sys.deregister(poll)
+	}
+}
+*/
 
 
 #[derive(Debug, PartialEq)]

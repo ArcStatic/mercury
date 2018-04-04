@@ -543,7 +543,8 @@ fn main(){
     let mut poll = mio::Poll::new()
         .unwrap();
     //Socket only needs to be registered once, detecting readable and writable events
-    poll.register(&tlsserv.server.sock,
+    //poll.register(&tlsserv.server.sock,
+    poll.register(&tlsserv.server,
                   LISTENER,
                   mio::Ready::readable(),
                   mio::PollOpt::edge())
